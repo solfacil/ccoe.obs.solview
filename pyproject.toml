@@ -1,0 +1,36 @@
+[project]
+name = "solview"
+version = "1.0.0"
+description = "Observabilidade clara como o Sol ☀️"
+authors = [
+    { name = "Solfácil", email = "jefferson.martins@solfacil.com.br" },
+    { name = "Solfácil", email = "marcelo.souza@solfacil.com.br" },
+    { name = "Solfácil", email = "vitor.garcia@solfacil.com.br" }
+]
+requires-python = ">=3.8,<4.0"
+readme = "README.md"
+license = {text = "MIT"}
+dependencies = [
+    "loguru",
+    "prometheus_client",
+    "opentelemetry-api",
+    "opentelemetry-sdk",
+    "opentelemetry-instrumentation",
+    "opentelemetry-exporter-otlp",
+    "fastapi",
+    "starlette",
+    "pydantic",
+    "python-dotenv",
+    "orjson",
+    "opentelemetry-instrumentation-fastapi (>=0.53b1,<0.54)",
+    "opentelemetry-instrumentation-httpx (>=0.53b1,<0.54)",
+    "opentelemetry-instrumentation-asyncpg (>=0.53b1,<0.54)",
+    "opentelemetry-instrumentation-logging (>=0.53b1,<0.54)",
+    "opentelemetry-instrumentation-sqlalchemy (>=0.53b1,<0.54)",
+    "asyncpg (>=0.30.0,<0.31.0)",
+    "sqlalchemy (>=2.0.40,<3.0.0)"
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
