@@ -1,5 +1,6 @@
 import sys
 import logging
+import asyncio
 from typing import Any, Optional
 
 from loguru import logger
@@ -8,25 +9,28 @@ from loguru._handler import Message
 from .settings import LoggingSettings
 from .sinks import ecs_sink
 
-def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[bool] = True) -> None:
+def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[bool] = None) -> None:
     """
     Configura o logger do SolView usando a configuração fornecida.
-
-    Em ambiente de desenvolvimento: logs coloridos/human-readables.
-    Em produção/homolog: logs JSON ECS para processamento por ferramentas.
-
-    Basta importar em qualquer aplicação Python, executar `setup_logger` no início,
-    e usar `from loguru import logger`.
-
-    Args:
-        settings (LoggingSettings): Configuração personalizada (pode ser None para padrão).
-        enqueue (bool, opcional): Se True, usa fila multiprocessada. Em testes, passe False se precisar.
+    Ajusta automaticamente `enqueue` para evitar erro de event loop em scripts síncronos.
     """
     if settings is None:
         settings = LoggingSettings()
 
     logger.remove()
-    # Ambiente dev: saída colorida bonitinha no terminal
+
+    # Detecta se há event loop rodando, para evitar problema em scripts puros
+    # O usuário pode forçar override em qualquer situação
+    if enqueue is None:
+        try:
+            asyncio.get_running_loop()
+            _enqueue = True
+        except RuntimeError:
+            _enqueue = False
+    else:
+        _enqueue = enqueue
+
+    # Ambiente dev
     if settings.environment == "development":
         logger.add(
             sink=sys.stdout,
@@ -39,7 +43,7 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
         logger.add(
             sink=_create_async_sink(settings),
             level=settings.log_level,
-            enqueue=enqueue,
+            enqueue=_enqueue,
             backtrace=True,
             catch=True,
         )
