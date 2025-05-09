@@ -2,12 +2,28 @@ import sys
 import logging
 import asyncio
 from typing import Any, Optional
-
 from loguru import logger
 from loguru._handler import Message
-
 from .settings import LoggingSettings
 from .sinks import ecs_sink
+
+def trace_context_filter(record):
+    try:
+        from opentelemetry.trace import get_current_span, format_trace_id, format_span_id
+        span = get_current_span()
+        trace_id = None
+        span_id = None
+        if span and hasattr(span, "get_span_context"):
+            ctx = span.get_span_context()
+            if getattr(ctx, "is_valid", None) and ctx.is_valid:
+                trace_id = format_trace_id(ctx.trace_id)
+                span_id = format_span_id(ctx.span_id)
+        record["extra"]["trace_id"] = trace_id
+        record["extra"]["span_id"] = span_id
+    except Exception:
+        record["extra"]["trace_id"] = None
+        record["extra"]["span_id"] = None
+    return True
 
 def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[bool] = None) -> None:
     """
@@ -46,6 +62,7 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
             enqueue=_enqueue,
             backtrace=True,
             catch=True,
+            filter=trace_context_filter
         )
 
     _redirect_std_logging()
