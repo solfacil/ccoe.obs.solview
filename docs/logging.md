@@ -56,7 +56,7 @@ Logs são enviados em formato JSON (ECS):
   "level": "info",
   "service": {
     "name": "api-pedidos",
-    "environment": "prd", # or dev,stg
+    "environment": "prd", # or dev
     "version": "2.0.0",
     "domain": "vendas",
     "subdomain": "checkout"

@@ -15,7 +15,7 @@ class LoggingSettings(BaseModel):
         )
     """
     log_level: str = "INFO"
-    environment: str = "stg"
+    environment: str = "dev"
     service_name: str = "app"
     domain: str = ""
     subdomain: str = ""
