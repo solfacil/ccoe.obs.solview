@@ -18,6 +18,7 @@ from opentelemetry.util.http.httplib import HttpClientInstrumentor
 from solview.settings import SolviewSettings
 
 settings = SolviewSettings()
+print("*** SolviewSettings:", settings)
 logger = logging.getLogger("solview.tracing.core")
 
 def parse_otlp_endpoint_and_protocol(

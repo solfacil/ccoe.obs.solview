@@ -20,8 +20,8 @@ class SolviewSettings(BaseModel):
     log_level: str = os.getenv("SOLVIEW_LOG_LEVEL", "INFO")
     environment: str = os.getenv("SOLVIEW_ENVIRONMENT", "dev")
     service_name: str = os.getenv("SOLVIEW_SERVICE_NAME", "app")
-    domain: str = os.getenv("SOLVIEW_DOMAIN", "")
-    subdomain: str = os.getenv("SOLVIEW_SUBDOMAIN", "")
+    domain: str = os.getenv("SOLVIEW_DOMAIN", "none")
+    subdomain: str = os.getenv("SOLVIEW_SUBDOMAIN", "none")
     version: str = os.getenv("SOLVIEW_VERSION", "1.0.0")
 
     @property
