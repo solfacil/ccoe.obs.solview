@@ -34,7 +34,7 @@ Localmente, pode usar um arquivo `.env` na raiz do projeto, por exemplo:
 ```
 # .env exemplo
 SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_ENVIRONMENT=production
+SOLVIEW_ENVIRONMENT=prd
 SOLVIEW_SERVICE_NAME=api-pedidos
 SOLVIEW_DOMAIN=vendas
 SOLVIEW_SUBDOMAIN=checkout

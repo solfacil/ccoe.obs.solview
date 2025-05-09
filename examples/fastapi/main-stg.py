@@ -25,3 +25,4 @@ async def status():
 @app.post("/echo")
 async def echo(data: dict):
     return {"received": data}
+

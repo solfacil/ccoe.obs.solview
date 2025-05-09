@@ -3,8 +3,8 @@ from solview.solview_logging.settings import LoggingSettings
 def test_service_name_composed_default():
     s = LoggingSettings()
     assert s.service_name == "app"
-    assert s.environment == "development"
-    assert s.service_name_composed == "development-app"
+    assert s.environment == "stg"
+    assert s.service_name_composed == "stg-app"
 
 def test_service_name_composed_with_custom_values():
     s = LoggingSettings(

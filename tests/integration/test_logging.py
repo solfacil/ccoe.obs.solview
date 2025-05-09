@@ -5,9 +5,9 @@ import importlib
 import orjson
 
 def test_integration_settings_logger_sink(monkeypatch):
-    # 1. Configura env para simular ambiente production e valores custom
+    # 1. Configura env para simular ambiente prd e valores custom
     monkeypatch.setenv("SOLVIEW_LOG_LEVEL", "DEBUG")
-    monkeypatch.setenv("SOLVIEW_ENVIRONMENT", "production")
+    monkeypatch.setenv("SOLVIEW_ENVIRONMENT", "prd")
     monkeypatch.setenv("SOLVIEW_SERVICE_NAME", "super-app")
     monkeypatch.setenv("SOLVIEW_DOMAIN", "dom")
     monkeypatch.setenv("SOLVIEW_SUBDOMAIN", "int")
@@ -19,9 +19,9 @@ def test_integration_settings_logger_sink(monkeypatch):
     from solview.settings import SolviewSettings
 
     s = SolviewSettings()
-    assert s.service_name_composed == "production-super-app"
+    assert s.service_name_composed == "prd-super-app"
     assert s.log_level == "DEBUG"
-    assert s.environment == "production"
+    assert s.environment == "prd"
     assert s.service_name == "super-app"
     assert s.domain == "dom"
     assert s.subdomain == "int"
@@ -127,7 +127,7 @@ def test_integration_settings_logger_sink(monkeypatch):
     assert data["message"].startswith("INTEG log")
     assert data["service"]["name"] == "super-app"
     assert data["level"] == "info"
-    assert data["service"]["environment"] == "production"
+    assert data["service"]["environment"] == "prd"
     assert data["labels"]["foo"] == "bar"
     assert data["labels"]["user"] == "alice"
     assert data["service"]["domain"] == "dom"

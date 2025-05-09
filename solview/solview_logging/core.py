@@ -47,7 +47,7 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
         _enqueue = enqueue
 
     # Ambiente dev
-    if settings.environment == "development":
+    if settings.environment == "stg":
         logger.add(
             sink=sys.stdout,
             format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}:{function}:{line}</cyan> - <level>{message}</level>",

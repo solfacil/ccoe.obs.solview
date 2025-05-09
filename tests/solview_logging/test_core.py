@@ -4,14 +4,14 @@ from solview.solview_logging.settings import LoggingSettings
 from loguru import logger
 
 def test_setup_logger_development(capsys):
-    s = LoggingSettings(environment="development", log_level="INFO")
+    s = LoggingSettings(environment="stg", log_level="INFO")
     setup_logger(s)
     logger.info("hello dev logger")
     out = capsys.readouterr().out
     assert "hello dev logger" in out or "INFO" in out
 
 def test_setup_logger_production():
-    s = LoggingSettings(environment="production", log_level="INFO")
+    s = LoggingSettings(environment="prd", log_level="INFO")
     async def run_logger():
         setup_logger(s)
     asyncio.run(run_logger())
