@@ -1,13 +1,13 @@
 [project]
 name = "solview"
-version = "1.0.0"
+version = "1.0.1"
 description = "Observabilidade clara como o Sol ☀️"
 authors = [
     { name = "Solfácil", email = "jefferson.martins@solfacil.com.br" },
     { name = "Solfácil", email = "marcelo.souza@solfacil.com.br" },
     { name = "Solfácil", email = "vitor.garcia@solfacil.com.br" }
 ]
-requires-python = ">=3.8,<4.0"
+requires-python = ">=3.9,<4.0"
 readme = "README.md"
 license = {text = "MIT"}
 dependencies = [
