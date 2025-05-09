@@ -1,7 +1,6 @@
-from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import BaseModel
 
-class LoggingSettings(BaseSettings):
+class LoggingSettings(BaseModel):
     """
     Configuração para Logging SolView.
 
@@ -15,9 +14,9 @@ class LoggingSettings(BaseSettings):
             version="1.0.0"
         )
     """
-    log_level: str = Field("INFO", env="SOLVIEW_LOG_LEVEL")
-    environment: str = Field("dev", env="SOLVIEW_ENVIRONMENT")
-    service_name: str = Field("app", env="SOLVIEW_SERVICE_NAME")
+    log_level: str = "INFO"
+    environment: str = "dev"
+    service_name: str = "app"
     domain: str = ""
     subdomain: str = ""
     version: str = "0.1.0"
