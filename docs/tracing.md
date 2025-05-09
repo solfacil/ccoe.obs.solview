@@ -10,10 +10,10 @@ Exemplo básico para integrar tracing em uma aplicação FastAPI:
 
 ```python
 from fastapi import FastAPI
-from solview.tracing import setup_tracer_from_env
+from solview.tracing import setup_tracer
 
 app = FastAPI()
-setup_tracer_from_env(app)
+setup_tracer(app)
 ```
 
 Este setup inicializa automaticamente o tracing baseado em variáveis de ambiente padrão.

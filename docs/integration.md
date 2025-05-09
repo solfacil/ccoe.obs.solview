@@ -23,7 +23,7 @@ from fastapi import FastAPI
 from solview.settings import SolviewSettings
 from solview.logging import setup_logger
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
-from solview.tracing import setup_tracer_from_env
+from solview.tracing import setup_tracer
 
 app = FastAPI()
 
@@ -35,7 +35,7 @@ app.add_middleware(SolviewPrometheusMiddleware, service_name="api-clientes")
 app.add_route("/metrics", prometheus_metrics_response)
 
 # Tracing via OTEL
-setup_tracer_from_env(app)
+setup_tracer(app)
 ```
 
 ---

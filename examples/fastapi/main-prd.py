@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from solview.solview_logging.core import setup_logger
 from solview.solview_logging.settings import LoggingSettings
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
-from solview.tracing import setup_tracer_from_env
+from solview.tracing import setup_tracer
 from loguru import logger
 
 cfg = LoggingSettings(
@@ -22,7 +22,7 @@ app.add_middleware(SolviewPrometheusMiddleware, service_name="aplicacao-demo")
 app.add_route("/metrics", prometheus_metrics_response)
 
 # Tracing
-setup_tracer_from_env(app)
+setup_tracer(app)
 
 @app.get("/")
 async def root():

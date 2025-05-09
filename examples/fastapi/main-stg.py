@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from solview.settings import SolviewSettings
 from solview.solview_logging import setup_logger
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
-from solview.tracing import setup_tracer_from_env
+from solview.tracing import setup_tracer
 
 app = FastAPI()
 
@@ -16,7 +16,7 @@ app.add_middleware(SolviewPrometheusMiddleware, service_name="example-fastapi")
 app.add_route("/metrics", prometheus_metrics_response)
 
 # Setup do tracer OpenTelemetry via variáveis de ambiente
-setup_tracer_from_env(app)
+setup_tracer(app)
 
 @app.get("/status")
 async def status():
