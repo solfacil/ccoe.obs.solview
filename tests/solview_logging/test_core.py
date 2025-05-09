@@ -4,7 +4,7 @@ from solview.solview_logging.settings import LoggingSettings
 from loguru import logger
 
 def test_setup_logger_development(capsys):
-    s = LoggingSettings(environment="stg", log_level="INFO")
+    s = LoggingSettings(environment="dev", log_level="INFO")
     setup_logger(s)
     logger.info("hello dev logger")
     out = capsys.readouterr().out

@@ -18,7 +18,7 @@ class SolviewSettings(BaseModel):
     Configurações globais do Solview.
     """
     log_level: str = os.getenv("SOLVIEW_LOG_LEVEL", "INFO")
-    environment: str = os.getenv("SOLVIEW_ENVIRONMENT", "stg")
+    environment: str = os.getenv("SOLVIEW_ENVIRONMENT", "dev")
     service_name: str = os.getenv("SOLVIEW_SERVICE_NAME", "app")
     domain: str = os.getenv("SOLVIEW_DOMAIN", "")
     subdomain: str = os.getenv("SOLVIEW_SUBDOMAIN", "")
