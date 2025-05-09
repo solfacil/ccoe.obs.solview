@@ -6,7 +6,6 @@ from loguru import logger
 from loguru._handler import Message
 from .settings import LoggingSettings
 from .sinks import ecs_sink
-from solview.settings import SolviewSettings
 
 def trace_context_filter(record):
     try:
@@ -26,13 +25,13 @@ def trace_context_filter(record):
         record["extra"]["span_id"] = None
     return True
 
-def setup_logger(settings: SolviewSettings = None, enqueue: bool = None) -> None:
+def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[bool] = None) -> None:
     """
     Configura o logger do SolView usando a configuração fornecida.
-    Se nada for passado, instancia as settings globais na hora (igual setup_tracer).
+    Ajusta automaticamente `enqueue` para evitar erro de event loop em scripts síncronos.
     """
     if settings is None:
-        settings = SolviewSettings()
+        settings = LoggingSettings()
 
     logger.remove()
 
