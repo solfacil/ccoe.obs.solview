@@ -82,17 +82,6 @@ def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
     """
     Lê variáveis de ambiente padrão OpenTelemetry/Solview e chama `setup_tracer` com argumentos apropriados.
     """
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
-    logger.info("OTEL_EXPORTER_OTLP_ENDPOINT: %s", otlp_endpoint)
-    logger.info("OTEL_EXPORTER_OTLP_PROTOCOL: %s", os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"))
-    logger.info("OTEL_EXPORTER_OTLP_HTTP_ENCRYPTED: %s", os.getenv("OTEL_EXPORTER_OTLP_HTTP_ENCRYPTED", "false"))
-    if ":" in otlp_endpoint:
-        otlp_exporter_host, otlp_exporter_port = otlp_endpoint.split(":")
-        otlp_exporter_port = int(otlp_exporter_port)
-    else:
-        otlp_exporter_host = otlp_endpoint
-        otlp_exporter_port = 4317  # Porta padrão
-
     return setup_tracer(
         app=app,
         service_name=settings.service_name_composed,
@@ -100,7 +89,6 @@ def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
         deployment_name=settings.environment,
         otlp_exporter_protocol=settings.otlp_exporter_protocol,
         otlp_exporter_host=settings.otlp_exporter_host,
-        otlp_exporter_port=settings.otlp_exporter_port,
         otlp_sqlalchemy_enable_commenter=settings.otlp_sqlalchemy_enable_commenter,
         otlp_exporter_http_encrypted=settings.otlp_exporter_http_encrypted,
         otlp_agent_auth_token=settings.otlp_agent_auth_token
