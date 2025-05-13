@@ -82,6 +82,9 @@ def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
     Lê variáveis de ambiente padrão OpenTelemetry/Solview e chama `setup_tracer` com argumentos apropriados.
     """
     otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
+    logger.info("OTEL_EXPORTER_OTLP_ENDPOINT: %s", otlp_endpoint)
+    logger.info("OTEL_EXPORTER_OTLP_PROTOCOL: %s", os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"))
+    logger.info("OTEL_EXPORTER_OTLP_HTTP_ENCRYPTED: %s", os.getenv("OTEL_EXPORTER_OTLP_HTTP_ENCRYPTED", "false"))
     if ":" in otlp_endpoint:
         otlp_exporter_host, otlp_exporter_port = otlp_endpoint.split(":")
         otlp_exporter_port = int(otlp_exporter_port)
