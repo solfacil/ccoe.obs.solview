@@ -16,6 +16,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExport
 from opentelemetry.trace import set_tracer_provider
 from opentelemetry.util.http.httplib import HttpClientInstrumentor
 from solview.settings import SolviewSettings
+
 settings = SolviewSettings()
 
 logger = logging.getLogger("solview.tracing.core")
@@ -97,12 +98,12 @@ def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
         service_name=settings.service_name_composed,
         service_version=settings.version,
         deployment_name=settings.environment,
-        otlp_exporter_protocol=os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"),
-        otlp_exporter_host=otlp_exporter_host,
-        otlp_exporter_port=otlp_exporter_port,
-        otlp_exporter_http_encrypted=os.getenv("OTEL_EXPORTER_OTLP_HTTP_ENCRYPTED", "false").lower() == "true",
-        otlp_agent_auth_token=os.getenv("OTEL_EXPORTER_OTLP_AUTH_TOKEN"),
-        otlp_sqlalchemy_enable_commenter=os.getenv("OTEL_SQLALCHEMY_ENABLE_COMMENTER", "false").lower() == "true"
+        otlp_exporter_protocol=settings.otlp_exporter_protocol,
+        otlp_exporter_host=settings.otlp_exporter_host,
+        otlp_exporter_port=settings.otlp_exporter_port,
+        otlp_sqlalchemy_enable_commenter=settings.otlp_sqlalchemy_enable_commenter,
+        otlp_exporter_http_encrypted=settings.otlp_exporter_http_encrypted,
+        otlp_agent_auth_token=settings.otlp_agent_auth_token
     )
 
 
