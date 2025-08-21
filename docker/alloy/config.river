@@ -17,7 +17,8 @@ otelcol.processor.batch "default" {}
 
 otelcol.exporter.otlp "tempo" {
   client {
-    endpoint = "tempo:4317"
+    # Force DNS resolver for gRPC to avoid resolving to ::1
+    endpoint = "dns:///tempo:4317"
     tls { insecure = true }
   }
 }
@@ -74,4 +75,9 @@ loki.source.docker "containers" {
 
 loki.write "default" {
   endpoint { url = "http://loki:3100/loki/api/v1/push" }
+}
+
+# Override default remote_write target (avoid localhost:9009)
+prometheus.remote_write "default" {
+  endpoint { url = "http://prometheus:9090/api/v1/write" }
 }
