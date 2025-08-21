@@ -17,8 +17,7 @@ otelcol.processor.batch "default" {}
 
 otelcol.exporter.otlp "tempo" {
   client {
-    # Force DNS resolver for gRPC to avoid resolving to ::1
-    endpoint = "dns:///tempo:4317"
+    endpoint = "tempo:4317"
     tls { insecure = true }
   }
 }
@@ -44,7 +43,7 @@ prometheus.remote_write "to_prom" {
   endpoint { url = "http://prometheus:9090/api/v1/write" }
 }
 
-# Pipeline to convert spanmetrics to Prometheus metrics
+// Pipeline to convert spanmetrics to Prometheus metrics
 otelcol.receiver.prometheus "spanmetrics" {}
 
 otelcol.exporter.prometheusremotewrite "default" {
@@ -77,7 +76,7 @@ loki.write "default" {
   endpoint { url = "http://loki:3100/loki/api/v1/push" }
 }
 
-# Override default remote_write target (avoid localhost:9009)
+// Override default remote_write target (avoid localhost:9009)
 prometheus.remote_write "default" {
   endpoint { url = "http://prometheus:9090/api/v1/write" }
 }
