@@ -30,17 +30,8 @@ otelcol.exporter.otlp "tempo" {
 loki.source.docker "containers" {
   host    = "unix:///var/run/docker.sock"
   targets = [{ __address__ = "unix:///var/run/docker.sock" }]
-  forward_to = [loki.relabel.filter.receiver]
-}
-
-// Filtra apenas containers com label solview.enabled=true
-loki.relabel "filter" {
-  forward_to = [loki.relabel.labels.receiver]
-  rule {
-    action        = "keep"
-    source_labels = ["__meta_docker_label_solview_enabled"]
-    regex         = "true"
-  }
+  labels  = { job = "containers" }
+  forward_to = [loki.write.default.receiver]
 }
 
 // Mapeia meta-labels Docker -> labels úteis (service_name, environment, app, container_name)
