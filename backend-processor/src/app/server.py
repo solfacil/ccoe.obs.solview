@@ -115,11 +115,7 @@ def create_application() -> FastAPI:
         )
     
     # 7. Include API routers
-    app.include_router(
-        health.router,
-        tags=["Health"],
-        prefix=""
-    )
+    app.include_router(health.router, tags=["Health"], prefix="")
     
     app.include_router(
         analytics.router,
