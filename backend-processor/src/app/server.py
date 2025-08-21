@@ -22,6 +22,9 @@ from app.environment import get_settings
 from app.api import health, analytics, processor, errors
 
 
+# Module-level logger for lifespan and startup logs
+logger = get_logger(__name__)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
