@@ -1,23 +1,23 @@
-// Alloy config: minimal OTLP traces -> Tempo, Docker logs -> Loki
-
 logging {
   level  = "debug"
   format = "logfmt"
 }
 
 tracing {
-  // Sample all traces for demo (internal Alloy traces)
+  // Internal Alloy traces (opcional)
   sampling_fraction = 1
 }
 
-// OTLP receiver -> Tempo exporter (accept app traces)
-otelcol.receiver.otlp "default" {
-  protocols {
-    grpc { endpoint = "0.0.0.0:4317" }
-  }
+// OTLP receiver (apps) -> Tempo (via batch)
+otelcol.receiver.otlp "otlp" {
+  grpc { endpoint = "0.0.0.0:4317" }
+  // http { endpoint = "0.0.0.0:4318" }  // habilite se precisar OTLP/HTTP
+  output { traces = [otelcol.processor.batch.default.input] }
 }
 
-otelcol.processor.batch "default" {}
+otelcol.processor.batch "default" {
+  output { traces = [otelcol.exporter.otlp.tempo.input] }
+}
 
 otelcol.exporter.otlp "tempo" {
   client {
@@ -26,20 +26,13 @@ otelcol.exporter.otlp "tempo" {
   }
 }
 
-otelcol.pipeline.traces "to_tempo" {
-  receivers  = [otelcol.receiver.otlp.default]
-  processors = [otelcol.processor.batch.default]
-  exporters  = [otelcol.exporter.otlp.tempo]
-}
-
-// Docker logs -> Loki
+// Logs Docker -> Loki
 loki.source.docker "containers" {
-  targets = [{ __address__ = "unix:///var/run/docker.sock" }]
+  host   = "unix:///var/run/docker.sock"
+  labels = { job = "containers" }
   forward_to = [loki.write.default.receiver]
 }
 
 loki.write "default" {
   endpoint { url = "http://loki:3100/loki/api/v1/push" }
 }
-
-
