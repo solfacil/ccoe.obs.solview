@@ -43,6 +43,19 @@ prometheus.remote_write "to_prom" {
   endpoint { url = "http://prometheus:9090/api/v1/write" }
 }
 
+# Pipeline to convert spanmetrics to Prometheus metrics
+otelcol.receiver.prometheus "spanmetrics" {}
+
+otelcol.exporter.prometheusremotewrite "default" {
+  client { endpoint = "http://prometheus:9090/api/v1/write" }
+}
+
+otelcol.pipeline.metrics "spanmetrics_to_prom" {
+  receivers  = [otelcol.connector.spanmetrics.http]
+  processors = []
+  exporters  = [otelcol.exporter.prometheusremotewrite.default]
+}
+
 // Scrape sample apps (adjust or remove targets if unused)
 // prometheus.scrape "apps" {
 //   scrape_interval = "15s"

@@ -92,6 +92,7 @@ services:
     ports:
       - "4317:4317"   # OTLP gRPC receiver
       - "4318:4318"   # OTLP HTTP receiver
+    command: ["/bin/alloy", "run", "/etc/alloy/config.river"]
     environment:
       - SOLVIEW_ENVIRONMENT=dev
       - OTEL_SERVICE_NAMESPACE=solview
@@ -156,9 +157,6 @@ services:
       - OTEL_EXPORTER_OTLP_PORT=4317
       - OTEL_RESOURCE_ATTRIBUTES=service.name=solview-demo-app,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=solview-demo-app
       - SERVICE_GRAPH_ENABLED=true
-      
-      # Security Configuration  
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:9090
     networks:
       - solview-network
     restart: unless-stopped
