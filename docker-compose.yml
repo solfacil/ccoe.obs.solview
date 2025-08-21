@@ -85,18 +85,19 @@ services:
       - solview-network
     restart: unless-stopped
 
-  # OpenTelemetry Collector
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.132.0
-    container_name: solview-otel-collector
+  # Grafana Alloy (Unified agent: OTLP + Logs)
+  alloy:
+    image: grafana/alloy:latest
+    container_name: solview-alloy
     ports:
-      - "4317:4317"   # OTLP gRPC receiver (primary)
+      - "4317:4317"   # OTLP gRPC receiver
       - "4318:4318"   # OTLP HTTP receiver
-      - "8889:8889"   # Prometheus metrics endpoint
-      - "13133:13133" # Health check
+    environment:
+      - SOLVIEW_ENVIRONMENT=dev
+      - OTEL_SERVICE_NAMESPACE=solview
     volumes:
-      - ./docker/otel-collector/otel-collector.yml:/etc/otel-collector-config.yaml
-    command: ["--config=/etc/otel-collector-config.yaml"]
+      - ./docker/alloy/config.river:/etc/alloy/config.river:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - solview-network
     restart: unless-stopped
@@ -151,7 +152,7 @@ services:
       # OpenTelemetry Configuration
       - OTEL_ENABLED=true
       - OTEL_SERVICE_NAME=solview-demo-app
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
       - OTEL_RESOURCE_ATTRIBUTES=service.name=solview-demo-app,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=solview-demo-app
       - SERVICE_GRAPH_ENABLED=true
       
@@ -169,7 +170,7 @@ services:
     depends_on:
       - loki
       - prometheus
-      - otel-collector
+      - alloy
       - tempo
 
   # Backend Processor - Secondary Service (Port 8001)
@@ -202,7 +203,7 @@ services:
       # OpenTelemetry Configuration (Production Ready)
       - OTEL_ENABLED=true
       - OTEL_SERVICE_NAME=backend-processor
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_RESOURCE_ATTRIBUTES=service.name=backend-processor,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=backend-processor
       - SERVICE_GRAPH_ENABLED=true
@@ -232,32 +233,14 @@ services:
       - solview-demo
       - loki
       - prometheus
-      - otel-collector
+      - alloy
       - tempo
 
   # =============================================================================
   # 📊 LOG AGGREGATION 
   # =============================================================================
 
-  # Promtail - Log shipper for Loki
-  promtail:
-    image: grafana/promtail:3.5.3
-    container_name: solview-promtail
-    ports:
-      - "9080:9080"
-    volumes:
-      - ./docker/promtail/promtail.yml:/etc/promtail/config.yml:ro
-      - /var/log:/var/log:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    command:
-      - '--config.file=/etc/promtail/config.yml'
-      - '--server.http-listen-port=9080'
-    networks:
-      - solview-network
-    restart: unless-stopped
-    depends_on:
-      - loki
+  
 
   # =============================================================================
   # 🔧 UTILITIES
