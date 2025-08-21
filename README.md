@@ -60,6 +60,8 @@ Copie o template e ajuste os valores para seu ambiente:
 cp config/solview.env.example .env
 ```
 
+Nota: `SOLVIEW_ENVIRONMENT` aceita valores como `dev`, `stg`, `qa` e será normalizado internamente para `dev`. Apenas `prd`/`prod`/`production` será normalizado para `prd`. Use `settings.environment_effective` para obter o valor final (`dev`|`prd`).
+
 ### 3. Instrumentação Básica
 
 ```python

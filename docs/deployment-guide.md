@@ -101,9 +101,9 @@ CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "
 ### **1. Configuração de Staging**
 
 ```bash
-# .env.staging
+# .env.staging (stg será normalizado internamente para dev)
 SOLVIEW_SERVICE_NAME=minha-api-staging
-SOLVIEW_ENVIRONMENT=staging
+SOLVIEW_ENVIRONMENT=stg
 SOLVIEW_LOG_LEVEL=INFO
 SOLVIEW_OTLP_ENDPOINT=http://otel-collector.staging.local:4317
 SOLVIEW_ENABLE_DATA_MASKING=true
@@ -231,7 +231,7 @@ jobs:
 ### **1. Configuração de Produção**
 
 ```bash
-# .env.production
+# .env.production (production será normalizado para prd)
 SOLVIEW_SERVICE_NAME=minha-api
 SOLVIEW_ENVIRONMENT=production
 SOLVIEW_LOG_LEVEL=INFO

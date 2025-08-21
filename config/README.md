@@ -15,7 +15,7 @@ cp config/solview.env.example .env
 ## Variable reference
 
 - `SOLVIEW_LOG_LEVEL`: Logger level (DEBUG/INFO/WARNING/ERROR).
-- `SOLVIEW_ENVIRONMENT`: Deployment environment name (dev/stg/prd).
+- `SOLVIEW_ENVIRONMENT`: Deployment environment name. Use `dev` for development and staging, `prd`/`prod`/`production` for production. Internally Solview exposes `environment_effective` which normalizes values to only `dev` or `prd`.
 - `SOLVIEW_SERVICE_NAME`: Technical service name used in logs/metrics/traces.
 - `SOLVIEW_DOMAIN` / `SOLVIEW_SUBDOMAIN`: Optional business metadata for logs.
 - `SOLVIEW_VERSION`: Version tag of your application/library.
