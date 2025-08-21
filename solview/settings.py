@@ -23,6 +23,8 @@ class SolviewSettings(BaseModel):
     domain: str = os.getenv("SOLVIEW_DOMAIN", "")
     subdomain: str = os.getenv("SOLVIEW_SUBDOMAIN", "")
     version: str = os.getenv("SOLVIEW_VERSION", "1.0.1")
+    # Namespace semântico OTEL (ex.: time/produto ou domínio)
+    service_namespace: str = os.getenv("OTEL_SERVICE_NAMESPACE", os.getenv("SOLVIEW_SERVICE_NAMESPACE", "solview"))
     
     # OpenTelemetry Configuration - Production Ready
     otlp_exporter_protocol: str = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
@@ -31,6 +33,9 @@ class SolviewSettings(BaseModel):
     otlp_exporter_http_encrypted: bool = os.getenv("OTEL_EXPORTER_OTLP_HTTP_ENCRYPTED", "true").lower() == "true"
     otlp_agent_auth_token: str = os.getenv("OTEL_EXPORTER_OTLP_AUTH_TOKEN", "")
     otlp_sqlalchemy_enable_commenter: bool = os.getenv("OTEL_SQLALCHEMY_ENABLE_COMMENTER", "true").lower() == "true"
+    # Sampler
+    trace_sampler: str = os.getenv("OTEL_TRACES_SAMPLER", "always_on")
+    trace_sampling_ratio: float = float(os.getenv("OTEL_TRACES_SAMPLER_ARG", "1.0"))
     
     # Kubernetes Integration
     k8s_namespace: str = os.getenv("KUBERNETES_NAMESPACE", "default")

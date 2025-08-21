@@ -12,7 +12,8 @@ from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
 from opentelemetry.sdk.trace import TracerProvider, sampling
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from opentelemetry.semconv.resource import ResourceAttributes
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter, SimpleSpanProcessor
 from opentelemetry.trace import set_tracer_provider
 from opentelemetry.util.http.httplib import HttpClientInstrumentor
 from solview.settings import SolviewSettings
@@ -34,6 +35,8 @@ def setup_tracer(
     otlp_agent_auth_token: Optional[str] = None,
     otlp_sqlalchemy_enable_commenter: bool = False,
     use_console_exporter_on_unittest: bool = True,
+    sampler: Optional[str] = None,
+    sampler_ratio: Optional[float] = None,
 ) -> TracerProvider:
     """
     Setup do OpenTelemetry tracing provider e instrumentação para FastAPI e libs relacionadas.
@@ -41,13 +44,17 @@ def setup_tracer(
     Todos argumentos podem ser preenchidos por variáveis de ambiente usando a função helper `setup_tracer_from_env`.
     """
     resource = _get_resource(service_name, service_version, deployment_name)
-    tracer_provider = TracerProvider(sampler=sampling.ALWAYS_ON, resource=resource)
+    tracer_provider = TracerProvider(
+        sampler=_get_sampler(sampler or settings.trace_sampler, sampler_ratio or settings.trace_sampling_ratio),
+        resource=resource,
+    )
     set_tracer_provider(tracer_provider)
     logger.info("TracerProvider configurado | Serviço: %s v%s", service_name, service_version)
 
     python_env = os.getenv("PYTHON_ENV", "")
     if use_console_exporter_on_unittest and python_env == "unittest":
-        tracer_provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
+        # Usa SimpleSpanProcessor para evitar flush assíncrono em stdout fechado no teardown do pytest
+        tracer_provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
         logger.info("[solview.tracing] Modo unittest: ConsoleSpanExporter habilitado.")
         return tracer_provider
 
@@ -98,16 +105,36 @@ def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
         otlp_exporter_host=settings.otlp_exporter_host,
         otlp_sqlalchemy_enable_commenter=settings.otlp_sqlalchemy_enable_commenter,
         otlp_exporter_http_encrypted=settings.otlp_exporter_http_encrypted,
-        otlp_agent_auth_token=settings.otlp_agent_auth_token
+        otlp_agent_auth_token=settings.otlp_agent_auth_token,
+        sampler=settings.trace_sampler,
+        sampler_ratio=settings.trace_sampling_ratio,
     )
 
 
 def _get_resource(service_name: str, service_version: str, deployment_name: Optional[str]) -> Resource:
-    attrs = {SERVICE_NAME: service_name, SERVICE_VERSION: service_version}
-    if deployment_name:
-        attrs["deployment_name"] = deployment_name
+    attrs = {
+        SERVICE_NAME: service_name,
+        SERVICE_VERSION: service_version,
+        ResourceAttributes.SERVICE_NAMESPACE: settings.service_namespace,
+        ResourceAttributes.DEPLOYMENT_ENVIRONMENT: deployment_name or settings.environment,
+    }
     logger.info("[solview.tracing] Resource OTEL: %s", attrs)
     return Resource.create(attrs)
+
+
+def _get_sampler(sampler: str, ratio: float):
+    name = (sampler or "always_on").lower()
+    try:
+        if name in ("always_on", "alwayson"):
+            return sampling.ALWAYS_ON
+        if name in ("always_off", "alwaysoff"):
+            return sampling.ALWAYS_OFF
+        if name in ("traceidratio", "ratio", "parentbased_traceidratio"):
+            base = sampling.TraceIdRatioBased(max(0.0, min(1.0, ratio or 1.0)))
+            return sampling.ParentBased(base)
+    except Exception:
+        pass
+    return sampling.ALWAYS_ON
 
 
 def _get_otlp_span_exporter(
