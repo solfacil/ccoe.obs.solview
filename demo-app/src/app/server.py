@@ -13,6 +13,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from solview import SolviewSettings, setup_logger, setup_tracer, get_logger
 from app.environment import get_settings
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
+from app.application.rest.health import router as health_router
+from app.application.rest.catalog import router as catalog_router
+from app.application.rest.order import router as order_router
+from app.application.rest.errors import router as errors_router
 
 logger = get_logger(__name__)
 
@@ -88,7 +92,16 @@ def create_application() -> FastAPI:
         otlp_exporter_port=settings.otlp_exporter_port,
     )
     
-    # 5. Configurar CORS
+    # 5. Registrar rotas de API e observabilidade
+    # Health/Ready/Info sem prefixo
+    app.include_router(health_router, tags=["Observability"], prefix="")
+    # Rotas de domínio com prefixo da API
+    api_prefix = app_cfg.api_prefix
+    app.include_router(catalog_router, prefix=f"{api_prefix}/catalog", tags=["Catalog"])
+    app.include_router(order_router, prefix=f"{api_prefix}/orders", tags=["Orders"])
+    app.include_router(errors_router, prefix=f"{api_prefix}/errors", tags=["Error Simulation"])
+
+    # 6. Configurar CORS
     cors_origins = app_cfg.cors_origins_list
     if cors_origins:
         app.add_middleware(
