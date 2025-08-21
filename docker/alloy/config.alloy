@@ -26,11 +26,95 @@ otelcol.exporter.otlp "tempo" {
   }
 }
 
-// Logs Docker -> Loki
+// Logs Docker -> Loki (descoberta + filtros + pipeline JSON)
 loki.source.docker "containers" {
   host    = "unix:///var/run/docker.sock"
   targets = [{ __address__ = "unix:///var/run/docker.sock" }]
+  forward_to = [loki.relabel.filter.receiver]
+}
+
+// Filtra apenas containers com label solview.enabled=true
+loki.relabel "filter" {
+  forward_to = [loki.relabel.labels.receiver]
+  rule {
+    action        = "keep"
+    source_labels = ["__meta_docker_label_solview_enabled"]
+    regex         = "true"
+  }
+}
+
+// Mapeia meta-labels Docker -> labels úteis (service_name, environment, app, container_name)
+loki.relabel "labels" {
+  forward_to = [loki.process.pipeline.receiver]
+
+  // container_name limpo
+  rule {
+    action        = "replace"
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container_name"
+    regex         = "/(.*)"
+    replacement   = "$1"
+  }
+
+  // service_name
+  rule {
+    action        = "replace"
+    source_labels = ["__meta_docker_label_solview_service_name"]
+    target_label  = "service_name"
+  }
+
+  // environment
+  rule {
+    action        = "replace"
+    source_labels = ["__meta_docker_label_solview_environment"]
+    target_label  = "environment"
+  }
+
+  // app (igual ao service_name)
+  rule {
+    action        = "replace"
+    source_labels = ["__meta_docker_label_solview_service_name"]
+    target_label  = "app"
+  }
+}
+
+// Pipeline: parse JSON do Solview, timestamp, labels estruturadas, saída limpa
+loki.process "pipeline" {
   forward_to = [loki.write.default.receiver]
+
+  stage.json {
+    expressions = {
+      timestamp            = "@timestamp"
+      level                = "level"
+      message              = "message"
+      trace_id             = "labels.trace_id"
+      span_id              = "labels.span_id"
+      event                = "labels.event"
+      "service.name"      = "service.name"
+      "service.environment" = "service.environment"
+    }
+  }
+
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339"
+  }
+
+  stage.labels {
+    values = {
+      service_name = "service.name"
+      environment  = "service.environment"
+      app          = "app"
+      level        = "level"
+      trace_id     = "trace_id"
+      span_id      = "span_id"
+      event        = "event"
+    }
+  }
+
+  stage.output {
+    source = "message"
+  }
 }
 
 loki.write "default" {
