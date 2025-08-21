@@ -11,6 +11,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from solview import SolviewSettings, setup_logger, setup_tracer, get_logger
+from app.environment import get_settings
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
 
 logger = get_logger(__name__)
@@ -24,7 +25,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Args:
         app: Instância do FastAPI
     """
-    settings = SolviewSettings(service_name="solview-demo-app")
+    app_cfg = get_settings()
+    settings = SolviewSettings()
     
     logger.info(
         "🚀 Solview Demo Application started",
@@ -50,7 +52,8 @@ def create_application() -> FastAPI:
     Returns:
         FastAPI: Aplicação configurada com Solview
     """
-    settings = SolviewSettings(service_name="solview-demo-app")
+    app_cfg = get_settings()
+    settings = SolviewSettings()
     
     # Configurar Solview Settings
     # solview_settings = SolviewSettings(
@@ -69,7 +72,7 @@ def create_application() -> FastAPI:
     app = FastAPI(title="Solview Demo App")
     
     # 2. Middleware de Métricas Prometheus do Solview
-    app.add_middleware(SolviewPrometheusMiddleware, service_name=settings.service_name)
+    app.add_middleware(SolviewPrometheusMiddleware, service_name=app_cfg.service_name)
     
     # 3. Endpoint de Métricas do Solview
     app.add_route("/metrics", prometheus_metrics_response)
@@ -77,16 +80,16 @@ def create_application() -> FastAPI:
     # 4. Setup Tracing OpenTelemetry do Solview
     setup_tracer(
         app=app,
-        service_name=settings.service_name,
-        service_version=settings.version,
-        deployment_name=settings.environment,
+        service_name=app_cfg.service_name,
+        service_version=app_cfg.version,
+        deployment_name=app_cfg.environment,
         otlp_exporter_protocol="grpc",
-        otlp_exporter_host=settings.otlp_exporter_host if hasattr(settings, 'otlp_exporter_host') else None,
-        otlp_exporter_port=getattr(settings, 'otlp_exporter_port', 4317),
+        otlp_exporter_host=settings.otlp_exporter_host,
+        otlp_exporter_port=settings.otlp_exporter_port,
     )
     
     # 5. Configurar CORS
-    cors_origins = settings.cors_origins_list
+    cors_origins = app_cfg.cors_origins_list
     if cors_origins:
         app.add_middleware(
             CORSMiddleware,
