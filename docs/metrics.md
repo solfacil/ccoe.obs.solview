@@ -27,10 +27,10 @@ Métricas padrão já coletadas automaticamente:
 
 | Métrica                            | Descrição                                                 |
 | ---------------------------------- | --------------------------------------------------------- |
-| `fastapi_requests_total`           | Total de requisições HTTP por método e caminho            |
+| `http_requests_total`              | Total de requisições HTTP por método e caminho            |
 | `fastapi_responses_total`          | Total de respostas HTTP por método, caminho e status code |
 | `fastapi_request_duration_seconds` | Latência das requisições por método e caminho             |
-| `fastapi_exceptions_total`         | Contagem de exceções por método, caminho e tipo           |
+| `http_exceptions_total`            | Contagem de exceções por método, caminho e tipo           |
 | `fastapi_requests_in_progress`     | Número atual de requisições em andamento                  |
 | `fastapi_app_info`                 | Informações gerais do aplicativo em execução              |
 

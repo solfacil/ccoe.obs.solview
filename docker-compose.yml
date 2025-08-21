@@ -1,0 +1,310 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # 📊 OBSERVABILITY STACK (LGTM)
+  # =============================================================================
+  
+  # Prometheus (Metrics)
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: solview-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--web.enable-remote-write-receiver'
+      - '--enable-feature=exemplar-storage'
+    networks:
+      - solview-network
+    restart: unless-stopped
+
+  # Grafana (Visualization)
+  grafana:
+    image: grafana/grafana:12.1.1-ubuntu
+    container_name: solview-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/dashboard-configs:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=solview123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_EXPLORE_ENABLED=true
+      - GF_ALERTING_ENABLED=true
+      - GF_UNIFIED_ALERTING_ENABLED=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    networks:
+      - solview-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  # Loki (Logs)
+  loki:
+    image: grafana/loki:3.5.3
+    container_name: solview-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./docker/loki/loki.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - solview-network
+    restart: unless-stopped
+
+  # Tempo (Traces)
+  tempo:
+    image: grafana/tempo:2.8.2
+    container_name: solview-tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP
+    volumes:
+      - ./docker/tempo/tempo.yml:/etc/tempo/tempo.yaml
+      - tempo_data:/var/tempo
+    command: 
+      - "-config.file=/etc/tempo/tempo.yaml"
+    networks:
+      - solview-network
+    restart: unless-stopped
+
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.132.0
+    container_name: solview-otel-collector
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver (primary)
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8889:8889"   # Prometheus metrics endpoint
+      - "13133:13133" # Health check
+    volumes:
+      - ./docker/otel-collector/otel-collector.yml:/etc/otel-collector-config.yaml
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    networks:
+      - solview-network
+    restart: unless-stopped
+    depends_on:
+      - tempo
+      - loki
+      - prometheus
+
+  # =============================================================================
+  # 🗄️ SUPPORTING SERVICES
+  # =============================================================================
+
+  # Redis (Rate Limiting & Caching)
+  redis:
+    image: redis:8.2.1-alpine
+    container_name: solview-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass solview123
+    networks:
+      - solview-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # 🚀 DEMO APPLICATIONS
+  # =============================================================================
+
+  # Solview Demo App - Primary Service (Port 8000)
+  solview-demo:
+    build:
+      context: .
+      dockerfile: ./demo-app/Dockerfile
+    container_name: solview-demo-app
+    labels:
+      # ✅ Labels para descoberta universal do Promtail
+      - "solview.enabled=true"
+      - "solview.service_name=solview-demo-app"
+      - "solview.environment=development"
+      - "solview.version=1.0.0"
+    ports:
+      - "8000:8000"
+    environment:
+      # Service Configuration
+      - PYTHONPATH=/app/src
+      - SOLVIEW_SERVICE_NAME=solview-demo-app
+      - SOLVIEW_VERSION=1.0.0
+      - SOLVIEW_ENVIRONMENT=development
+      - SOLVIEW_LOG_LEVEL=INFO
+      
+      # OpenTelemetry Configuration
+      - OTEL_ENABLED=true
+      - OTEL_SERVICE_NAME=solview-demo-app
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=solview-demo-app,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=solview-demo-app
+      - SERVICE_GRAPH_ENABLED=true
+      
+      # Security Configuration  
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:9090
+    networks:
+      - solview-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    depends_on:
+      - loki
+      - prometheus
+      - otel-collector
+      - tempo
+
+  # Backend Processor - Secondary Service (Port 8001)
+  backend-processor:
+    build:
+      context: .
+      dockerfile: ./backend-processor/Dockerfile
+    container_name: backend-processor-app
+    labels:
+      # ✅ Labels para descoberta universal do Promtail
+      - "solview.enabled=true"
+      - "solview.service_name=backend-processor"
+      - "solview.environment=development"
+      - "solview.version=1.0.0"
+    ports:
+      - "8001:8001"
+    environment:
+      # Service Configuration
+      - PYTHONPATH=/app/src
+      - SERVICE_NAME=backend-processor
+      - SERVICE_VERSION=1.0.0
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - PORT=8001
+      
+      # Demo App Integration (Service Communication)
+      - DEMO_APP_URL=http://solview-demo:8000
+      - DEMO_APP_TIMEOUT=30
+      
+      # OpenTelemetry Configuration (Production Ready)
+      - OTEL_ENABLED=true
+      - OTEL_SERVICE_NAME=backend-processor
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=backend-processor,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=backend-processor
+      - SERVICE_GRAPH_ENABLED=true
+      
+      # Observability Features
+      - METRICS_ENABLED=true
+      - TRACING_ENABLED=true
+      - LOGGING_ENABLED=true
+      
+      # Security Configuration  
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:9090
+      
+      # Processing Configuration
+      - BATCH_SIZE=10
+      - PROCESSING_INTERVAL_SECONDS=30
+      - RETRY_ATTEMPTS=3
+    networks:
+      - solview-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    depends_on:
+      - solview-demo
+      - loki
+      - prometheus
+      - otel-collector
+      - tempo
+
+  # =============================================================================
+  # 📊 LOG AGGREGATION 
+  # =============================================================================
+
+  # Promtail - Log shipper for Loki
+  promtail:
+    image: grafana/promtail:3.5.3
+    container_name: solview-promtail
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./docker/promtail/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command:
+      - '--config.file=/etc/promtail/config.yml'
+      - '--server.http-listen-port=9080'
+    networks:
+      - solview-network
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+  # =============================================================================
+  # 🔧 UTILITIES
+  # =============================================================================
+
+  # Log Generator (for testing)
+  log-generator:
+    image: mingrammer/flog:0.4.4
+    container_name: solview-log-generator
+    command: 
+      - -f
+      - json
+      - -t
+      - log
+      - -o
+      - /logs/app.log
+      - -s
+      - 1s
+      - -l
+    volumes:
+      - ./docker/logs:/logs
+    networks:
+      - solview-network
+    restart: unless-stopped
+    profiles: ["testing"]
+
+# =============================================================================
+# 📂 VOLUMES
+# =============================================================================
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  loki_data:
+    driver: local
+  tempo_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# =============================================================================
+# 🌐 NETWORKS
+# =============================================================================
+networks:
+  solview-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

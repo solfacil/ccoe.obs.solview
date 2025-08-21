@@ -62,8 +62,15 @@ def setup_tracer(
     )
     HttpClientInstrumentor().instrument(tracer_provider=tracer_provider)
     if app:
-        FastAPIInstrumentor().instrument_app(app=app, tracer_provider=tracer_provider)
-        logger.info("[solview.tracing] FastAPI instrumentada para tracing.")
+        # Define URLs de infraestrutura que devem ser excluídas do tracing
+        excluded_urls = "/health|/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"
+        
+        FastAPIInstrumentor().instrument_app(
+            app=app, 
+            tracer_provider=tracer_provider,
+            excluded_urls=excluded_urls
+        )
+        logger.info("[solview.tracing] FastAPI instrumentada para tracing (excluindo URLs de infraestrutura: %s)", excluded_urls)
 
     # Exportador OTLP
     exporter = _get_otlp_span_exporter(

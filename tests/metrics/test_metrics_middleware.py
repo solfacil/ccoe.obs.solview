@@ -18,6 +18,6 @@ def test_exception_metric_and_500_captured(app_with_exception):
     with pytest.raises(RuntimeError):
         client.get("/fail")
     metrics = client.get("/metrics").text
-    assert "fastapi_exceptions_total" in metrics
+    assert "http_exceptions_total" in metrics
     # Confirma que exception_type=RuntimeError está presente
     assert 'exception_type="RuntimeError"' in metrics

@@ -37,7 +37,7 @@ def test_ping_and_metrics_endpoint(app):
     # Checa se /metrics retorna métricas Prometheus
     metrics_resp = client.get("/metrics")
     assert metrics_resp.status_code == 200
-    assert "fastapi_requests_total" in metrics_resp.text
+    assert "http_requests_total" in metrics_resp.text
     assert "test-service" in metrics_resp.text
 
 def test_404_path_is_not_counted(app):

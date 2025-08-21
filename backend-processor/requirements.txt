@@ -1,0 +1,43 @@
+# 📦 Backend Processor Dependencies
+
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# HTTP Client for service communication
+httpx==0.25.2
+aiohttp==3.9.1
+
+# Observability (Solview integration)
+# Note: Solview is installed from local path in Docker
+loguru==0.7.2
+python-dotenv==1.0.0
+orjson==3.9.10
+starlette>=0.27.0
+
+# OpenTelemetry (Production)
+opentelemetry-api==1.21.0
+opentelemetry-sdk==1.21.0
+opentelemetry-instrumentation==0.42b0
+opentelemetry-instrumentation-fastapi==0.42b0
+opentelemetry-instrumentation-requests==0.42b0
+opentelemetry-instrumentation-httpx==0.42b0
+opentelemetry-instrumentation-aiohttp-client==0.42b0
+opentelemetry-instrumentation-asyncpg==0.42b0
+opentelemetry-instrumentation-logging==0.42b0
+opentelemetry-instrumentation-sqlalchemy==0.42b0
+opentelemetry-exporter-otlp==1.21.0
+opentelemetry-exporter-otlp-proto-grpc==1.21.0
+
+# Prometheus metrics
+prometheus-client==0.19.0
+
+# Utilities
+python-json-logger==2.0.7
+structlog==23.2.0
+
+# Database (needed by Solview)
+asyncpg==0.29.0
+sqlalchemy==2.0.23
