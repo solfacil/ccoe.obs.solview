@@ -36,7 +36,7 @@ open http://localhost:3100  # Loki
 ```bash
 # .env para desenvolvimento
 SOLVIEW_SERVICE_NAME=minha-api-dev
-SOLVIEW_ENVIRONMENT=development
+SOLVIEW_ENVIRONMENT=dev
 SOLVIEW_LOG_LEVEL=DEBUG
 SOLVIEW_OTLP_ENDPOINT=http://localhost:4317
 SOLVIEW_ENABLE_DATA_MASKING=false

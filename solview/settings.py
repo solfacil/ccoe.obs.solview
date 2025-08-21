@@ -18,6 +18,7 @@ class SolviewSettings(BaseModel):
     Configurações globais do Solview.
     """
     log_level: str = os.getenv("SOLVIEW_LOG_LEVEL", "INFO")
+    # Raw environment value from .env; effective mapping below
     environment: str = os.getenv("SOLVIEW_ENVIRONMENT", "dev")
     service_name: str = os.getenv("SOLVIEW_SERVICE_NAME", "app")
     domain: str = os.getenv("SOLVIEW_DOMAIN", "")
@@ -51,13 +52,26 @@ class SolviewSettings(BaseModel):
     metrics_port: int = int(os.getenv("SOLVIEW_METRICS_PORT", "9090"))
     metrics_path: str = os.getenv("SOLVIEW_METRICS_PATH", "/metrics")
 
+    def _normalize_environment(self) -> str:
+        env = (self.environment or "").strip().lower()
+        prod_aliases = {"prd", "prod", "production"}
+        dev_aliases = {"dev", "development", "local", "test", "testing", "qa", "stg", "stage", "staging"}
+        if env in prod_aliases:
+            return "prd"
+        return "dev"  # default and staging/qa/dev map to dev
+
+    @property
+    def environment_effective(self) -> str:
+        """Return only 'dev' or 'prd'. 'stg' and others are mapped to 'dev'."""
+        return self._normalize_environment()
+
     @property
     def service_name_composed(self) -> str:
-        return f"{self.environment}-{self.service_name}"
+        return f"{self.environment_effective}-{self.service_name}"
     
     @property
     def is_production(self) -> bool:
-        return self.environment in ["prd", "prod", "production"]
+        return self.environment_effective == "prd"
     
     @property
     def otlp_endpoint_full(self) -> str:

@@ -52,7 +52,15 @@ graph TB
 pip install solview
 ```
 
-### 2. Instrumentação Básica
+### 2. Variáveis de Ambiente
+
+Copie o template e ajuste os valores para seu ambiente:
+
+```bash
+cp config/solview.env.example .env
+```
+
+### 3. Instrumentação Básica
 
 ```python
 from fastapi import FastAPI
@@ -76,7 +84,7 @@ async def health():
     return {"status": "healthy"}
 ```
 
-### 3. Execução com Observabilidade
+### 4. Execução com Observabilidade
 
 ```bash
 # Iniciar stack de observabilidade

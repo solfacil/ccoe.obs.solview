@@ -4,7 +4,7 @@ from solview.solview_logging.settings import LoggingSettings
 
 def test_solview_settings_env(monkeypatch):
     monkeypatch.setenv("SOLVIEW_LOG_LEVEL", "DEBUG")
-    monkeypatch.setenv("SOLVIEW_ENVIRONMENT", "homolog")
+    monkeypatch.setenv("SOLVIEW_ENVIRONMENT", "dev")
     monkeypatch.setenv("SOLVIEW_SERVICE_NAME", "api-sol")
     monkeypatch.setenv("SOLVIEW_DOMAIN", "solar_os")
     monkeypatch.setenv("SOLVIEW_SUBDOMAIN", "obs")
@@ -18,12 +18,13 @@ def test_solview_settings_env(monkeypatch):
     
     s = SolviewSettings()
     assert s.log_level == "DEBUG"
-    assert s.environment == "homolog"
+    # environment now remains raw input ("dev"), while effective mapping is available via property
+    assert s.environment == "dev"
     assert s.service_name == "api-sol"
     assert s.domain == "solar_os"
     assert s.subdomain == "obs"
     assert s.version == "9.9.9"
-    assert s.service_name_composed == "homolog-api-sol"
+    assert s.service_name_composed == "dev-api-sol"
 
 def test_logging_settings_properties():
     s = LoggingSettings(
