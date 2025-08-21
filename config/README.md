@@ -21,7 +21,6 @@ cp config/solview.env.example .env
 - `SOLVIEW_VERSION`: Version tag of your application/library.
 - `OTEL_SERVICE_NAMESPACE`: OTEL service namespace (team/domain) for Tempo/Grafana grouping.
 - `SOLVIEW_ENABLE_DATA_MASKING`: Enables advanced masking in logs.
-- `SOLVIEW_LOG_RETENTION_DAYS`: Informational log retention policy (days).
 - `OTEL_EXPORTER_OTLP_PROTOCOL`: OTLP protocol (grpc/http).
 - `OTEL_EXPORTER_OTLP_ENDPOINT`: Hostname of OTLP endpoint (Tempo/Collector).
 - `OTEL_EXPORTER_OTLP_PORT`: Port of OTLP endpoint (4317 grpc / 4318 http).

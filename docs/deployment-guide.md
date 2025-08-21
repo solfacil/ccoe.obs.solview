@@ -109,7 +109,6 @@ SOLVIEW_OTLP_ENDPOINT=http://otel-collector.staging.local:4317
 SOLVIEW_ENABLE_DATA_MASKING=true
 SOLVIEW_TRACE_SAMPLING_rate=0.5
 SOLVIEW_METRICS_ENABLED=true
-SOLVIEW_LOG_RETENTION_DAYS=14
 ```
 
 ### **2. Docker Compose para Staging**

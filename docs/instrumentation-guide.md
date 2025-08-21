@@ -493,9 +493,7 @@ SOLVIEW_SETTINGS = {
     "enable_data_masking": True,
     "export_traces": True,
     "export_metrics": True,
-    "trace_sampling_rate": 0.05,  # 5% de sampling para performance
-    "log_retention_days": 30,
-    "metrics_retention_days": 90,
+    "trace_sampling_rate": 0.05 # 5% de sampling para performance
 }
 ```
 

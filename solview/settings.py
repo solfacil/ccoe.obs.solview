@@ -38,15 +38,8 @@ class SolviewSettings(BaseModel):
     trace_sampler: str = os.getenv("OTEL_TRACES_SAMPLER", "always_on")
     trace_sampling_ratio: float = float(os.getenv("OTEL_TRACES_SAMPLER_ARG", "1.0"))
     
-    # Kubernetes Integration
-    k8s_namespace: str = os.getenv("KUBERNETES_NAMESPACE", "default")
-    k8s_pod_name: str = os.getenv("HOSTNAME", "")
-    k8s_node_name: str = os.getenv("KUBERNETES_NODE_NAME", "")
-    
     # Security and Compliance
-    enable_data_masking: bool = os.getenv("SOLVIEW_ENABLE_DATA_MASKING", "true").lower() == "true"
-    log_retention_days: int = int(os.getenv("SOLVIEW_LOG_RETENTION_DAYS", "30"))
-    
+    enable_data_masking: bool = os.getenv("SOLVIEW_ENABLE_DATA_MASKING", "true").lower() == "true"    
     # Metrics Configuration
     metrics_enabled: bool = os.getenv("SOLVIEW_METRICS_ENABLED", "true").lower() == "true"
     metrics_port: int = int(os.getenv("SOLVIEW_METRICS_PORT", "9090"))
