@@ -91,7 +91,7 @@ services:
     container_name: solview-alloy
     ports:
       - "4317:4317"   # OTLP gRPC receiver
-    command: ["/bin/alloy", "run", "/etc/alloy/config.alloy"]
+    command: ["run", "/etc/alloy/config.alloy"]
     environment:
       - SOLVIEW_ENVIRONMENT=dev
       - OTEL_SERVICE_NAMESPACE=solview
