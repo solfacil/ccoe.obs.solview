@@ -1,0 +1,64 @@
+// ===== Traces (OTLP -> Tempo) =====
+otelcol.receiver.otlp "default" {
+  protocols {
+    grpc { endpoint = "0.0.0.0:4317" }
+    http { endpoint = "0.0.0.0:4318" }
+  }
+}
+
+otelcol.processor.resource "attrs" {
+  attributes = {
+    "service.namespace"      = env("OTEL_SERVICE_NAMESPACE"),
+    "deployment.environment" = env("SOLVIEW_ENVIRONMENT"),
+  }
+}
+
+otelcol.processor.batch "default" {}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "http://tempo:4317"
+    tls { insecure = true }
+  }
+}
+
+otelcol.pipeline.traces "to_tempo" {
+  receivers  = [otelcol.receiver.otlp.default]
+  processors = [otelcol.processor.resource.attrs, otelcol.processor.batch.default]
+  exporters  = [otelcol.exporter.otlp.tempo]
+}
+
+// Optional: SpanMetrics -> Prometheus
+otelcol.connector.spanmetrics "http" {
+  histogram { explicit = [0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10] }
+}
+
+otelcol.pipeline.traces "spanmetrics" {
+  receivers  = [otelcol.receiver.otlp.default]
+  processors = [otelcol.processor.batch.default]
+  exporters  = [otelcol.connector.spanmetrics.http]
+}
+
+prometheus.remote_write "to_prom" {
+  endpoint { url = "http://prometheus:9090/api/v1/write" }
+}
+
+// Scrape sample apps (adjust or remove targets if unused)
+// prometheus.scrape "apps" {
+//   scrape_interval = "15s"
+//   target { __address__ = "demo-app:8000"; job = "demo-app" }
+//   target { __address__ = "backend-processor:8001"; job = "backend-processor" }
+//   forward_to = [prometheus.remote_write.to_prom.receiver]
+// }
+
+// ===== Logs (Docker -> Loki) =====
+// Requires mounting /var/run/docker.sock
+loki.source.docker "containers" {
+  host   = "unix:///var/run/docker.sock"
+  labels = { job = "containers" }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint { url = "http://loki:3100/loki/api/v1/push" }
+}
