@@ -84,14 +84,14 @@ loki.process "pipeline" {
 
   stage.json {
     expressions = {
-      timestamp            = "@timestamp"
-      level                = "level"
-      message              = "message"
-      trace_id             = "labels.trace_id"
-      span_id              = "labels.span_id"
-      event                = "labels.event"
-      "service.name"      = "service.name"
-      "service.environment" = "service.environment"
+      timestamp            = "@timestamp",
+      level                = "level",
+      message              = "message",
+      trace_id             = "labels.trace_id",
+      span_id              = "labels.span_id",
+      event                = "labels.event",
+      service_name         = "service.name",
+      service_environment  = "service.environment"
     }
   }
 
@@ -102,12 +102,12 @@ loki.process "pipeline" {
 
   stage.labels {
     values = {
-      service_name = "service.name"
-      environment  = "service.environment"
-      app          = "app"
-      level        = "level"
-      trace_id     = "trace_id"
-      span_id      = "span_id"
+      service_name = "service_name",
+      environment  = "service_environment",
+      app          = "app",
+      level        = "level",
+      trace_id     = "trace_id",
+      span_id      = "span_id",
       event        = "event"
     }
   }
