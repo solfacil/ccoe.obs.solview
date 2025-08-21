@@ -1,0 +1,155 @@
+groups:
+  - name: solview.security
+    rules:
+      # Authentication Failures
+      - alert: HighAuthenticationFailures
+        expr: |
+          rate(fastapi_responses_total{job="solview-demo", status_code="401"}[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.service_name }}"
+          team: security
+        annotations:
+          summary: "High authentication failure rate detected"
+          description: "Service {{ $labels.service_name }} has {{ $value | humanize }} authentication failures per second"
+          runbook_url: "https://runbooks.company.com/solview-auth-failures"
+
+      # Suspicious Activity
+      - alert: SuspiciousActivity
+        expr: |
+          rate(fastapi_responses_total{job="solview-demo", status_code="400"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.service_name }}"
+          team: security
+        annotations:
+          summary: "Suspicious activity detected - possible attack"
+          description: "High rate of 400 errors ({{ $value | humanize }}/sec) may indicate attack attempt"
+          runbook_url: "https://runbooks.company.com/solview-suspicious-activity"
+
+      # Rate Limiting Violations
+      - alert: RateLimitViolations
+        expr: |
+          rate(fastapi_responses_total{job="solview-demo", status_code="429"}[5m]) > 1
+        for: 30s
+        labels:
+          severity: warning
+          service: "{{ $labels.service_name }}"
+          team: security
+        annotations:
+          summary: "Rate limiting violations detected"
+          description: "{{ $value | humanize }} rate limit violations per second"
+
+  - name: solview.performance
+    rules:
+      # High Response Time
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(fastapi_request_duration_seconds_bucket{job="solview-demo"}[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service_name }}"
+          team: sre
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value | humanizeDuration }} for {{ $labels.service_name }}"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(fastapi_responses_total{job="solview-demo", status_code=~"5.."}[5m]) / 
+            rate(fastapi_responses_total{job="solview-demo"}[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.service_name }}"
+          team: sre
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.service_name }}"
+
+  - name: solview.availability
+    rules:
+      # Service Down
+      - alert: SolviewServiceDown
+        expr: |
+          up{job="solview-demo"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.instance }}"
+          team: sre
+        annotations:
+          summary: "Solview service is down"
+          description: "Solview demo service {{ $labels.instance }} is unreachable"
+
+      # Low Request Rate (potential issue)
+      - alert: LowRequestRate
+        expr: |
+          rate(http_requests_total{job="solview-demo"}[5m]) < 0.1
+        for: 5m
+        labels:
+          severity: info
+          service: "{{ $labels.service_name }}"
+          team: sre
+        annotations:
+          summary: "Unusually low request rate"
+          description: "Request rate is only {{ $value | humanize }}/sec for {{ $labels.service_name }}"
+
+  - name: solview.infrastructure
+    rules:
+      # Redis Connection Issues
+      - alert: RedisConnectionFailures
+        expr: |
+          increase(redis_connected_clients[5m]) < 1
+        for: 2m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Redis connection issues"
+          description: "Redis may be experiencing connection issues"
+
+      # OTEL Collector Issues
+      - alert: OTELCollectorDown
+        expr: |
+          up{job="otel-collector"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: observability
+        annotations:
+          summary: "OpenTelemetry Collector is down"
+          description: "OTEL Collector is not responding - telemetry data may be lost"
+
+      # Loki Issues
+      - alert: LokiDown
+        expr: |
+          up{job="loki"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: observability
+        annotations:
+          summary: "Loki is down"
+          description: "Loki is not responding - log ingestion may be affected"
+
+      # Tempo Issues  
+      - alert: TempoDown
+        expr: |
+          up{job="tempo"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: observability
+        annotations:
+          summary: "Tempo is down"
+          description: "Tempo is not responding - trace ingestion may be affected"
+

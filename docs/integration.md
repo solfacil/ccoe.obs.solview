@@ -20,10 +20,8 @@ O `solview` foi projetado para oferecer **observabilidade unificada** — loggin
 
 ```python
 from fastapi import FastAPI
-from solview.settings import SolviewSettings
-from solview.logging import setup_logger
+from solview import SolviewSettings, setup_logger, setup_tracer
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
-from solview.tracing import setup_tracer
 
 app = FastAPI()
 
@@ -35,7 +33,7 @@ app.add_middleware(SolviewPrometheusMiddleware, service_name="api-clientes")
 app.add_route("/metrics", prometheus_metrics_response)
 
 # Tracing via OTEL
-setup_tracer(app)
+setup_tracer(SolviewSettings(service_name="api-clientes"), app)
 ```
 
 ---
@@ -68,16 +66,13 @@ def process_task(data):
 ### 🐍 Scripts Python
 
 ```python
-from solview.settings import SolviewSettings
-from solview.logging import setup_logger
-from solview import Solview
+from solview import SolviewSettings, setup_logger
 
 setup_logger(SolviewSettings(service_name="cli-importador"))
 
 def main():
-    solview = Solview()
-    result = solview.process({"dados": "exemplo"})
-    print(result)
+    # lógica do script
+    pass
 
 if __name__ == "__main__":
     main()
@@ -107,7 +102,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT_PORT=4317
 
 ## 🧪 Boas Práticas
 
-- **Sempre defina `service_name` e `service_name`** nas integrações.
+- **Sempre defina `service_name`** nas integrações.
 - **Use `mask_sensitive_data`** para proteger dados pessoais.
 - **Configure corretamente o `/metrics`** para coleta por Prometheus.
 - **Prefira gRPC no OpenTelemetry** para melhor performance.

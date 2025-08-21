@@ -11,7 +11,8 @@ Configure o logger no início da execução do seu aplicativo:
 ```python
 from solview.settings import SolviewSettings
 from solview.logging import setup_logger
-from loguru import logger
+from solview import get_logger
+logger = get_logger(__name__)
 
 # Carrega automaticamente de variáveis de ambiente ou arquivo .env
 settings = SolviewSettings()
@@ -87,8 +88,9 @@ Logs são enviados em formato JSON (ECS):
 Para evitar exposição de dados sensíveis, utilize a função de mascaramento fornecida:
 
 ```python
-from solview.common.masking import mask_sensitive_data
-from loguru import logger
+from solview.security import mask_sensitive_data
+from solview import get_logger
+logger = get_logger(__name__)
 
 masked_message = mask_sensitive_data("CPF: 12345678909, email=usuario@email.com")
 logger.info(masked_message)

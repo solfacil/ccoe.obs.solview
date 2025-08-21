@@ -1,0 +1,93 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'solview-local'
+    environment: 'development'
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+
+  # OpenTelemetry Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8889']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # Solview Demo Application (Primary Service)
+  - job_name: 'solview-demo'
+    static_configs:
+      - targets: ['solview-demo:8000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    # API Key authentication para Solview
+    authorization:
+      type: 'Bearer'
+      credentials: 'sk-demo-1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+
+  # Backend Processor (Secondary Service for Service Graph)
+  - job_name: 'backend-processor'
+    static_configs:
+      - targets: ['backend-processor:8001']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    # API Key authentication para Solview
+
+  # 🔥 Tempo Metrics Generator
+  - job_name: 'tempo-metrics-generator'
+    static_configs:
+      - targets: ['tempo:3200']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Tempo metrics
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Redis metrics (if redis_exporter is added)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Remote write configuration (for long-term storage)
+# remote_write:
+#   - url: "http://mimir:9009/api/v1/push"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
