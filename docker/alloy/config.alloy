@@ -28,8 +28,7 @@ otelcol.exporter.otlp "tempo" {
 
 // Logs Docker -> Loki
 loki.source.docker "containers" {
-  host   = "unix:///var/run/docker.sock"
-  labels = { job = "containers" }
+  targets = [{ __address__ = "unix:///var/run/docker.sock" }]
   forward_to = [loki.write.default.receiver]
 }
 
