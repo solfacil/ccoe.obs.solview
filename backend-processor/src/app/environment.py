@@ -44,7 +44,8 @@ class Settings(BaseSettings):
     # OpenTelemetry Configuration (Production Ready)
     otel_enabled: bool = Field(default=True, env="OTEL_ENABLED")
     otel_service_name: str = Field(default="backend-processor", env="OTEL_SERVICE_NAME")
-    otel_exporter_endpoint: str = Field(default="http://otel-collector:4317", env="OTEL_EXPORTER_OTLP_ENDPOINT")
+    otel_exporter_endpoint: str = Field(default="alloy", env="OTEL_EXPORTER_OTLP_ENDPOINT")
+    otel_exporter_port: int = Field(default=4317, env="OTEL_EXPORTER_OTLP_PORT")
     otel_exporter_protocol: str = Field(default="grpc", env="OTEL_EXPORTER_OTLP_PROTOCOL")
     otel_resource_attributes: str = Field(
         default="service.name=backend-processor,service.version=1.0.0,service.namespace=solview,deployment.environment=development",
@@ -82,7 +83,11 @@ class Settings(BaseSettings):
     @property
     def otel_endpoint_host(self) -> str:
         """Extract host from OTEL endpoint."""
-        return self.otel_exporter_endpoint.replace("http://", "").replace(":4317", "")
+        ep = self.otel_exporter_endpoint.replace("http://", "").replace("https://", "")
+        # strip port if present
+        if ":" in ep:
+            return ep.split(":", 1)[0]
+        return ep
     
     def get_demo_app_endpoint(self, path: str) -> str:
         """Build complete endpoint URL for demo app."""
