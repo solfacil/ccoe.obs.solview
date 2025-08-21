@@ -152,7 +152,8 @@ services:
       # OpenTelemetry Configuration
       - OTEL_ENABLED=true
       - OTEL_SERVICE_NAME=solview-demo-app
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=alloy
+      - OTEL_EXPORTER_OTLP_PORT=4317
       - OTEL_RESOURCE_ATTRIBUTES=service.name=solview-demo-app,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=solview-demo-app
       - SERVICE_GRAPH_ENABLED=true
       
@@ -203,7 +204,8 @@ services:
       # OpenTelemetry Configuration (Production Ready)
       - OTEL_ENABLED=true
       - OTEL_SERVICE_NAME=backend-processor
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=alloy
+      - OTEL_EXPORTER_OTLP_PORT=4317
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_RESOURCE_ATTRIBUTES=service.name=backend-processor,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=backend-processor
       - SERVICE_GRAPH_ENABLED=true
