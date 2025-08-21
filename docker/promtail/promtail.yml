@@ -1,0 +1,73 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # =============================================================================
+  # 🌍 CONFIGURAÇÃO UNIVERSAL - TODAS AS APLICAÇÕES SOLVIEW
+  # =============================================================================
+  - job_name: solview-applications
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 30s
+        # ✅ Filtra apenas containers com label solview
+        filters:
+          - name: label
+            values: ["solview.enabled=true"]
+    
+    relabel_configs:
+      # Container name limpo
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container_name
+      
+      # ✅ Service name dinâmico do label do container
+      - source_labels: ['__meta_docker_container_label_solview_service_name']
+        target_label: service_name
+      
+      # ✅ Environment dinâmico do label do container
+      - source_labels: ['__meta_docker_container_label_solview_environment']
+        target_label: environment
+        
+      # ✅ App label dinâmico (igual ao service_name)
+      - source_labels: ['__meta_docker_container_label_solview_service_name']
+        target_label: app
+    
+    pipeline_stages:
+      # Parse JSON do Solview com sintaxe correta
+      - json:
+          expressions:
+            timestamp: '"@timestamp"'        # Quoted para escapar @
+            level: level
+            message: message
+            trace_id: labels.trace_id        # Nested field
+            span_id: labels.span_id          # Nested field  
+            event: labels.event              # Nested field
+            service_name: service.name       # Nested field
+            service_environment: service.environment  # Environment
+            app_name: service.name           # App label duplicado do service
+      
+      # Set timestamp se disponível
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      
+      # Labels estruturadas para correlação
+      - labels:
+          service_name:     # solview-demo-app
+          environment:      # development
+          app:              # app label para correlação (vem do relabel_config)
+          level:
+          trace_id:
+          span_id:
+          event:
+      
+      # Output limpo
+      - output:
+          source: message

@@ -23,11 +23,11 @@ def test_metrics_are_exposed_and_incremented(app):
     metrics = client.get("/metrics")
     assert metrics.status_code == 200
     text = metrics.text
-    assert "fastapi_requests_total" in text
+    assert "http_requests_total" in text
     assert 'method="GET",path="/health",service_name="integration-test"' in text
     # Checa se a contagem foi incrementada 2x
     import re
-    match = re.search(r'fastapi_requests_total{[^}]*path="/health"[^}]*} (\d+)', text)
+    match = re.search(r'http_requests_total{[^}]*path="/health"[^}]*} (\d+)', text)
     assert match
     count = int(match.group(1))
     assert count >= 2

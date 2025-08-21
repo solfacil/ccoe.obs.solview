@@ -4,6 +4,7 @@ import asyncio
 import importlib
 import orjson
 
+
 def test_integration_settings_logger_sink(monkeypatch):
     # 1. Configura env para simular ambiente prd e valores custom
     monkeypatch.setenv("SOLVIEW_LOG_LEVEL", "DEBUG")
@@ -40,16 +41,14 @@ def test_integration_settings_logger_sink(monkeypatch):
     )
 
     # 3. Prepara sink custom (BytesIO)
-    from loguru import logger
     from solview.solview_logging.sinks import ecs_sink
+    from solview import get_logger
 
     class MemorySink:
         """Sink síncrono para coletar logs em memória (para integração)."""
         def __init__(self):
             self.buf = io.BytesIO()
         def write(self, msg):
-            # Loguru passa string, serialize para bytes
-            # (Não usaremos esse para ECS sink async, só referência)
             self.buf.write(msg.encode("utf-8"))
         def flush(self):
             pass
@@ -60,7 +59,6 @@ def test_integration_settings_logger_sink(monkeypatch):
     def create_sync_sink(settings, outstream):
         def sync_sink(message):
             """Versão síncrona do ECS sink para usar em teste."""
-            # Adapta ECS original para rodar sync
             rec = message.record
             log_message = {
                 "@timestamp": rec["time"].strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -112,11 +110,14 @@ def test_integration_settings_logger_sink(monkeypatch):
 
         return sync_sink
 
-    logger.remove()  # Clean all pre-existing handlers
-    # Adiciona sink síncrono só pra integração
-    logger.add(create_sync_sink(log_settings, mem_sink), level=log_settings.log_level, enqueue=False)
+    # Inicializa o logger do Solview e injeta o sink síncrono do teste
+    setup_logger(log_settings)
+    from loguru import logger as _logger  # acesso direto para adicionar sink custom só no teste
+    _logger.remove()
+    _logger.add(create_sync_sink(log_settings, mem_sink), level=log_settings.log_level, enqueue=False)
 
     # 5. Emite um log completo
+    logger = get_logger(__name__)
     logger.bind(foo="bar", user="alice").info("INTEG log: tudo ok")
 
     # 6. Lê resultado da memória
