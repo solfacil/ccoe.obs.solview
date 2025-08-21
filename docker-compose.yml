@@ -91,13 +91,12 @@ services:
     container_name: solview-alloy
     ports:
       - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
-    command: ["/bin/alloy", "run", "/etc/alloy/config.river"]
+    command: ["/bin/alloy", "run", "/etc/alloy/config.alloy"]
     environment:
       - SOLVIEW_ENVIRONMENT=dev
       - OTEL_SERVICE_NAMESPACE=solview
     volumes:
-      - ./docker/alloy/config.river:/etc/alloy/config.river:ro
+      - ./docker/alloy/config.river:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - solview-network
