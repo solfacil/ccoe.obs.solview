@@ -69,13 +69,21 @@ def create_application() -> FastAPI:
     app = FastAPI(title="Solview Demo App")
     
     # 2. Middleware de Métricas Prometheus do Solview
-    app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
+    app.add_middleware(SolviewPrometheusMiddleware, service_name=settings.service_name)
     
     # 3. Endpoint de Métricas do Solview
     app.add_route("/metrics", prometheus_metrics_response)
     
     # 4. Setup Tracing OpenTelemetry do Solview
-    setup_tracer(settings, app)
+    setup_tracer(
+        app=app,
+        service_name=settings.service_name,
+        service_version=settings.version,
+        deployment_name=settings.environment,
+        otlp_exporter_protocol="grpc",
+        otlp_exporter_host=settings.otlp_exporter_host if hasattr(settings, 'otlp_exporter_host') else None,
+        otlp_exporter_port=getattr(settings, 'otlp_exporter_port', 4317),
+    )
     
     # 5. Configurar CORS
     cors_origins = settings.cors_origins_list
