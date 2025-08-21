@@ -1,0 +1,32 @@
+// Alloy config: minimal OTLP traces -> Tempo, Docker logs -> Loki
+
+logging {
+  level  = "debug"
+  format = "logfmt"
+}
+
+tracing {
+  // Sample all traces for demo
+  sampling_fraction = 1
+  write_to = [otelcol.exporter.otlp.tempo.input]
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls { insecure = true }
+  }
+}
+
+// Docker logs -> Loki
+loki.source.docker "containers" {
+  host   = "unix:///var/run/docker.sock"
+  labels = { job = "containers" }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint { url = "http://loki:3100/loki/api/v1/push" }
+}
+
+
