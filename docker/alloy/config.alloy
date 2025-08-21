@@ -6,10 +6,18 @@ logging {
 }
 
 tracing {
-  // Sample all traces for demo
+  // Sample all traces for demo (internal Alloy traces)
   sampling_fraction = 1
-  write_to = [otelcol.exporter.otlp.tempo.input]
 }
+
+// OTLP receiver -> Tempo exporter (accept app traces)
+otelcol.receiver.otlp "default" {
+  protocols {
+    grpc { endpoint = "0.0.0.0:4317" }
+  }
+}
+
+otelcol.processor.batch "default" {}
 
 otelcol.exporter.otlp "tempo" {
   client {
@@ -18,10 +26,15 @@ otelcol.exporter.otlp "tempo" {
   }
 }
 
+otelcol.pipeline.traces "to_tempo" {
+  receivers  = [otelcol.receiver.otlp.default]
+  processors = [otelcol.processor.batch.default]
+  exporters  = [otelcol.exporter.otlp.tempo]
+}
+
 // Docker logs -> Loki
 loki.source.docker "containers" {
-  host   = "unix:///var/run/docker.sock"
-  labels = { job = "containers" }
+  targets = [{ __address__ = "unix:///var/run/docker.sock" }]
   forward_to = [loki.write.default.receiver]
 }
 
