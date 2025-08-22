@@ -78,8 +78,10 @@ discovery.relabel "logs_integrations_docker" {
   }
   rule {
     action        = "replace"
-    source_labels = ["container_name"]
+    source_labels = ["__meta_docker_container_name"]
     target_label  = "service_name"
+    regex         = "/(.*)"
+    replacement   = "$1"
   }
 
   // environment from label; default to development
@@ -110,6 +112,8 @@ loki.source.docker "default" {
   relabel_rules = discovery.relabel.logs_integrations_docker.rules
   forward_to    = [loki.write.default.receiver]
 }
+
+// (no processing pipeline; direct ship to Loki as when it worked)
 
 loki.write "default" {
   endpoint { url = "http://loki:3100/loki/api/v1/push" }
