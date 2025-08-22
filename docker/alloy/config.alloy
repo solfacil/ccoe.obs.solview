@@ -35,13 +35,6 @@ discovery.docker "linux" {
 discovery.relabel "logs_integrations_docker" {
   targets = discovery.docker.linux.targets
 
-  // Keep only containers explicitly enabled
-  rule {
-    action        = "keep"
-    source_labels = ["__meta_docker_container_label_solview_enabled"]
-    regex         = "true"
-  }
-
   // container_name without leading '/'
   rule {
     action        = "replace"
