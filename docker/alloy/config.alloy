@@ -110,7 +110,41 @@ loki.source.docker "default" {
   targets       = discovery.docker.linux.targets
   labels        = { "platform" = "docker" }
   relabel_rules = discovery.relabel.logs_integrations_docker.rules
-  forward_to    = [loki.write.default.receiver]
+  forward_to    = [loki.process.cleanup.receiver]
+}
+
+// Minimal pipeline: keep only JSON logs and output just the 'message' field
+loki.process "cleanup" {
+  forward_to = [loki.relabel.prune_labels.receiver]
+
+  stage.json {
+    drop_malformed = false
+    expressions = {
+      message  = "message",
+      trace_id = "labels.trace_id",
+      span_id  = "labels.span_id",
+    }
+  }
+
+  stage.labels {
+    values = {
+      trace_id = null,
+      span_id  = null,
+    }
+  }
+
+  stage.output { source = "message" }
+}
+
+// Drop all labels except: app, service_name, environment, trace_id, span_id
+loki.relabel "prune_labels" {
+  forward_to = [loki.write.default.receiver]
+
+  // Drop everything we don't want to index as labels
+  rule {
+    action = "labeldrop"
+    regex  = "^(container|container_name|job|platform)$"
+  }
 }
 
 // (no processing pipeline; direct ship to Loki as when it worked)
