@@ -103,6 +103,7 @@ def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
         deployment_name=settings.environment_effective,
         otlp_exporter_protocol=settings.otlp_exporter_protocol,
         otlp_exporter_host=settings.otlp_exporter_host,
+        otlp_exporter_port=settings.otlp_exporter_port,
         otlp_sqlalchemy_enable_commenter=settings.otlp_sqlalchemy_enable_commenter,
         otlp_exporter_http_encrypted=settings.otlp_exporter_http_encrypted,
         otlp_agent_auth_token=settings.otlp_agent_auth_token,
