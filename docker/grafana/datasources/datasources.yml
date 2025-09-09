@@ -1,0 +1,106 @@
+apiVersion: 1
+
+datasources:
+  # Prometheus datasource com exemplars e correlação
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    uid: prometheus-uid
+    editable: true
+    jsonData:
+      httpMethod: POST
+      # ✅ Exemplars para correlação metrics → traces
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo-uid
+          urlDisplayLabel: "🔍 View Trace"
+      # ✅ Custom query timeout
+      timeInterval: '15s'
+      queryTimeout: '60s'
+
+  # Loki datasource com correlação avançada
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    uid: loki-uid
+    editable: true
+    jsonData:
+      # ✅ Derived fields para correlação automática
+      derivedFields:
+        - datasourceUid: tempo-uid
+          matcherRegex: '"trace_id":"([a-f0-9]{32})"'
+          name: TraceID
+          url: "$${__value.raw}"
+          urlDisplayLabel: "🔍 View Trace"
+        - datasourceUid: tempo-uid
+          matcherRegex: '"span_id":"([a-f0-9]{16})"'
+          name: SpanID
+          url: "$${__data.fields.TraceID}"
+          urlDisplayLabel: "🎯 View Span"
+      # ✅ Max lines para performance
+      maxLines: 1000
+
+  # Tempo datasource com correlação bidirecional
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    uid: tempo-uid
+    editable: true
+    jsonData:
+      httpMethod: GET
+      # ✅ Service Graph integration
+      serviceMap:
+        datasourceUid: prometheus-uid
+      # ✅ Node Graph para visualização
+      nodeGraph:
+        enabled: true
+      # ✅ Search habilitado
+      search:
+        hide: false
+      # ✅ Loki search integration
+      lokiSearch:
+        datasourceUid: loki-uid
+      # ✅ Trace to Logs correlation - UNIVERSAL
+      tracesToLogs:
+        datasourceUid: loki-uid
+        tags: ['service.name', 'app']
+        mappedTags:
+          - key: 'service.name'
+            value: 'service_name'
+          - key: 'app'
+            value: 'app'
+        mapTagNamesEnabled: true
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        # ✅ Query universal: usa app OR service_name para compatibilidade
+        query: '{app="${__trace.tags.service.name}"} OR {service_name="${__trace.tags.service.name}"} | json | labels.trace_id = "${__trace.traceId}"'
+      # ✅ Trace to Metrics correlation
+      tracesToMetrics:
+        datasourceUid: prometheus-uid
+        spanStartTimeShift: '-2m'
+        spanEndTimeShift: '2m'
+        tags:
+          - { key: 'service.name', value: 'service_name' }
+          - { key: 'app', value: 'app' }
+        queries:
+          - name: 'Request Rate'
+            query: 'rate(http_requests_total{service_name="$${__span.tags["service.name"]}"}[5m])'
+          - name: 'Error Rate'
+            query: 'rate(http_responses_total{service_name="$${__span.tags["service.name"]}",status_code=~"4..|5.."}[5m]) / rate(http_responses_total{service_name="$${__span.tags["service.name"]}"}[5m]) * 100'
+          - name: 'Latency P95'
+            query: 'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service_name="$${__span.tags["service.name"]}"}[5m]))'
+          - name: 'Service Graph Requests'
+            query: 'rate(traces_service_graph_request_total{service_name="$${__span.tags["service.name"]}"}[5m])'
+  # TestData datasource for demo
+  - name: TestData
+    type: testdata
+    uid: testdata-uid
+    editable: true
+
