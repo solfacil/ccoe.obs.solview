@@ -14,7 +14,7 @@ aiohttp==3.9.1
 # Note: Solview is installed from local path in Docker
 loguru==0.7.2
 python-dotenv==1.0.0
-orjson==3.9.10
+orjson==3.9.15
 starlette>=0.27.0
 
 # OpenTelemetry (Production)
