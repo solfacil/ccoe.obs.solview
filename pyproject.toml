@@ -11,7 +11,7 @@ authors = [
     { name = "Solfácil", email = "marcelo.souza@solfacil.com.br" },
     { name = "Solfácil", email = "vitor.garcia@solfacil.com.br" }
 ]
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.9"
 readme = "README.md"
 # license = {text = "MIT"}
 dependencies = [
