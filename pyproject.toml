@@ -26,13 +26,13 @@ dependencies = [
     "pydantic",
     "python-dotenv",
     "orjson",
-    "opentelemetry-instrumentation-fastapi (>=0.53b1,<0.54)",
-    "opentelemetry-instrumentation-httpx (>=0.53b1,<0.54)",
-    "opentelemetry-instrumentation-asyncpg (>=0.53b1,<0.54)",
-    "opentelemetry-instrumentation-logging (>=0.53b1,<0.54)",
-    "opentelemetry-instrumentation-sqlalchemy (>=0.53b1,<0.54)",
-    "asyncpg (>=0.30.0,<0.31.0)",
-    "sqlalchemy (>=2.0.40,<3.0.0)"
+    "opentelemetry-instrumentation-fastapi>=0.53b1",
+    "opentelemetry-instrumentation-httpx>=0.53b1",
+    "opentelemetry-instrumentation-asyncpg>=0.53b1",
+    "opentelemetry-instrumentation-logging>=0.53b1",
+    "opentelemetry-instrumentation-sqlalchemy>=0.53b1",
+    "asyncpg>=0.30.0",
+    "sqlalchemy>=2.0.40"
 ]
 
 [tool.hatch.build.targets.sdist]
