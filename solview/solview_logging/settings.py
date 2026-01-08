@@ -11,7 +11,8 @@ class LoggingSettings(BaseModel):
             service_name="minha-api",
             domain="solarview",
             subdomain="observabilidade",
-            version="1.0.0"
+            version="1.0.0",
+            ignore_mask=False
         )
     """
     log_level: str = "INFO"
@@ -20,6 +21,7 @@ class LoggingSettings(BaseModel):
     domain: str = ""
     subdomain: str = ""
     version: str = "0.1.0"
+    ignore_mask: bool = False
 
     @property
     def service_name_composed(self) -> str:
