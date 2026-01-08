@@ -1,0 +1,152 @@
+"""HTTP client instrumentation decorators combining OpenTelemetry tracing and Prometheus metrics."""
+
+import time
+import random
+import urllib.parse
+from collections.abc import Callable
+from functools import wraps
+
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
+
+from solview.instrumentation.utils import _normalize_url_path, MemoryProfiler
+from solview.metrics.custom import (
+    HTTP_OUTGOING_REQUESTS_TOTAL,
+    HTTP_OUTGOING_REQUESTS_DURATION_SECONDS,
+    HTTP_OUTGOING_REQUESTS_ERRORS_TOTAL,
+    HTTP_OUTGOING_REQUESTS_MEMORY_BYTES,
+)
+from solview.solview_logging import get_logger
+from solview.settings import SolviewSettings
+
+logger = get_logger(__name__)
+settings = SolviewSettings()
+APP_NAME = settings.service_name
+
+
+def http_client_instrumentation(operation: str = "request"):
+    """
+    Decorator to instrument HTTP client operations with tracing and metrics.
+    """
+
+    def decorator(func: Callable) -> Callable:
+
+        def _should_profile_memory() -> bool:
+            return (
+                settings.enable_memory_profiling
+                and random.random() < settings.sampling_memory_profiling
+            )
+
+        @wraps(func)
+        async def wrapper(self, url: str, *args, **kwargs):
+            full_url = self.base_url + url
+            parsed_url = urllib.parse.urlparse(full_url)
+
+            url_host = parsed_url.netloc or "unknown"
+            url_path = parsed_url.path or "/"
+            normalized_path = _normalize_url_path(url_path)
+            method = operation.upper()
+
+            tracer = trace.get_tracer(f"http.client.{func.__module__}")
+            start_time = time.time()
+            success = False
+
+            profile_memory = _should_profile_memory()
+            memory_profiler = MemoryProfiler(enabled=profile_memory)
+
+            with tracer.start_as_current_span(
+                f"http.client.{operation}",
+                attributes={
+                    "http.method": method,
+                    "http.url": full_url,
+                    "http.scheme": parsed_url.scheme,
+                    "http.host": url_host,
+                    "http.target": (
+                        parsed_url.path
+                        + ("?" + parsed_url.query if parsed_url.query else "")
+                    ),
+                },
+            ) as span:
+                with memory_profiler.measure():
+                    try:
+                        result = await func(self, url, *args, **kwargs)
+                        success = True
+
+                        response = getattr(self, "_last_response", None)
+                        span.set_status(Status(StatusCode.OK))
+                        return result
+
+                    except Exception as e:
+                        span.set_status(
+                            Status(StatusCode.ERROR, description=str(e))
+                        )
+                        span.record_exception(e)
+                        raise
+
+                    finally:
+                        duration = time.time() - start_time
+                        status = "success" if success else "error"
+
+                        response = getattr(self, "_last_response", None)
+                        status_code = (
+                            str(response.status_code)
+                            if response is not None
+                            else "exception"
+                        )
+
+                        # 🔢 Total outgoing requests
+                        HTTP_OUTGOING_REQUESTS_TOTAL.labels(
+                            method=method,
+                            status_code=status_code,
+                            url_host=url_host,
+                            url_path=normalized_path,
+                            app_name=APP_NAME,
+                            status=status,
+                        ).inc()
+
+                        # ⏱ Duration (sempre)
+                        HTTP_OUTGOING_REQUESTS_DURATION_SECONDS.labels(
+                            method=method,
+                            url_host=url_host,
+                            url_path=normalized_path,
+                            app_name=APP_NAME,
+                            status=status,
+                        ).observe(duration)
+
+                        # ❌ Errors (somente erro)
+                        if not success:
+                            HTTP_OUTGOING_REQUESTS_ERRORS_TOTAL.labels(
+                                method=method,
+                                url_host=url_host,
+                                url_path=normalized_path,
+                                error_type="exception",
+                                app_name=APP_NAME,
+                            ).inc()
+
+                        # 🧠 Memory (amostrado)
+                        if profile_memory:
+                            memory_delta = memory_profiler.get_memory_delta()
+                            if memory_delta is not None:
+                                HTTP_OUTGOING_REQUESTS_MEMORY_BYTES.labels(
+                                    method=method,
+                                    url_host=url_host,
+                                    url_path=normalized_path,
+                                    app_name=APP_NAME,
+                                    status=status,
+                                ).observe(abs(memory_delta))
+
+                                if span.is_recording():
+                                    span.set_attribute(
+                                        "memory.delta_bytes", memory_delta
+                                    )
+
+                        # 📎 HTTP status code no span
+                        if response is not None:
+                            span.set_attribute(
+                                "http.status_code", response.status_code
+                            )
+
+        return wrapper
+
+    return decorator
+

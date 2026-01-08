@@ -44,6 +44,11 @@ class SolviewSettings(BaseModel):
     metrics_enabled: bool = os.getenv("SOLVIEW_METRICS_ENABLED", "true").lower() == "true"
     metrics_port: int = int(os.getenv("SOLVIEW_METRICS_PORT", "9090"))
     metrics_path: str = os.getenv("SOLVIEW_METRICS_PATH", "/metrics")
+    # Memory profiling configuration
+    
+    enable_memory_profiling: bool = os.getenv("SOLVIEW_ENABLE_MEMORY_PROFILING", False).lower() == "true" # enabled impacting the performance of the application
+    #recomendation: local=1.0, staging=0.1, production=0.01, production_incident=0.05
+    sampling_memory_profiling: float = float(os.getenv("SOLVIEW_SAMPLING_MEMORY_PROFILING", "1.0")) 
 
     def _normalize_environment(self) -> str:
         env = (self.environment or "").strip().lower()
