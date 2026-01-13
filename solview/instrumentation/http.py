@@ -1,5 +1,6 @@
 """HTTP client instrumentation decorators combining OpenTelemetry tracing and Prometheus metrics."""
 
+import asyncio
 import time
 import random
 import urllib.parse
@@ -11,6 +12,7 @@ from opentelemetry.trace import Status, StatusCode
 
 from solview.instrumentation.utils import _normalize_url_path, MemoryProfiler
 from solview.metrics.custom import (
+    HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL,
     HTTP_OUTGOING_REQUESTS_TOTAL,
     HTTP_OUTGOING_REQUESTS_DURATION_SECONDS,
     HTTP_OUTGOING_REQUESTS_ERRORS_TOTAL,
@@ -31,15 +33,21 @@ def http_client_instrumentation(operation: str = "request"):
 
     def decorator(func: Callable) -> Callable:
 
-        def _should_profile_memory() -> bool:
+        def should_profile_memory() -> bool:
             return (
                 settings.enable_memory_profiling
                 and random.random() < settings.sampling_memory_profiling
             )
 
+        async def _execute(func, *args, **kwargs):
+            result = func(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return await result
+            return result
+
         @wraps(func)
-        async def wrapper(self, url: str, *args, **kwargs):
-            full_url = self.base_url + url
+        async def wrapper(self, path: str, *args, **kwargs):
+            full_url = self.base_url + path
             parsed_url = urllib.parse.urlparse(full_url)
 
             url_host = parsed_url.netloc or "unknown"
@@ -48,10 +56,11 @@ def http_client_instrumentation(operation: str = "request"):
             method = operation.upper()
 
             tracer = trace.get_tracer(f"http.client.{func.__module__}")
-            start_time = time.time()
+            start_time = time.perf_counter()
             success = False
+            result = None
 
-            profile_memory = _should_profile_memory()
+            profile_memory = should_profile_memory()
             memory_profiler = MemoryProfiler(enabled=profile_memory)
 
             with tracer.start_as_current_span(
@@ -67,84 +76,101 @@ def http_client_instrumentation(operation: str = "request"):
                     ),
                 },
             ) as span:
-                with memory_profiler.measure():
-                    try:
-                        result = await func(self, url, *args, **kwargs)
-                        success = True
+                recording = span.is_recording()
+                if recording:
+                    span.set_attribute("memory.sampling.enabled", profile_memory)
 
-                        response = getattr(self, "_last_response", None)
-                        span.set_status(Status(StatusCode.OK))
-                        return result
+                try:
+                    with memory_profiler.measure():
+                        result = await _execute(func, *args, **kwargs)
 
-                    except Exception as e:
-                        span.set_status(
-                            Status(StatusCode.ERROR, description=str(e))
-                        )
-                        span.record_exception(e)
-                        raise
+                    success = True
+                    span.set_status(Status(StatusCode.OK))
 
-                    finally:
-                        duration = time.time() - start_time
-                        status = "success" if success else "error"
+                except Exception as exc:
+                    span.record_exception(exc)
+                    span.set_status(
+                        Status(StatusCode.ERROR, description=str(exc))
+                    )
+                    raise
 
-                        response = getattr(self, "_last_response", None)
-                        status_code = (
-                            str(response.status_code)
-                            if response is not None
-                            else "exception"
-                        )
+                finally:
+                    duration = time.perf_counter() - start_time
+                    status = "success" if success else "error"
 
-                        # 🔢 Total outgoing requests
-                        HTTP_OUTGOING_REQUESTS_TOTAL.labels(
+                    response = getattr(self, "_last_response", None)
+                    status_code = (
+                        str(response.status_code)
+                        if response is not None
+                        else "exception"
+                    )
+
+                    HTTP_OUTGOING_REQUESTS_TOTAL.labels(
+                        method=method,
+                        status_code=status_code,
+                        url_host=url_host,
+                        url_path=normalized_path,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).inc()
+
+                    HTTP_OUTGOING_REQUESTS_DURATION_SECONDS.labels(
+                        method=method,
+                        url_host=url_host,
+                        url_path=normalized_path,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).observe(duration)
+
+                    if not success:
+                        HTTP_OUTGOING_REQUESTS_ERRORS_TOTAL.labels(
                             method=method,
-                            status_code=status_code,
                             url_host=url_host,
                             url_path=normalized_path,
+                            error_type="exception",
                             app_name=APP_NAME,
-                            status=status,
                         ).inc()
 
-                        # ⏱ Duration (sempre)
-                        HTTP_OUTGOING_REQUESTS_DURATION_SECONDS.labels(
-                            method=method,
-                            url_host=url_host,
-                            url_path=normalized_path,
-                            app_name=APP_NAME,
-                            status=status,
-                        ).observe(duration)
+                    if not profile_memory:
+                        return result
 
-                        # ❌ Errors (somente erro)
-                        if not success:
-                            HTTP_OUTGOING_REQUESTS_ERRORS_TOTAL.labels(
-                                method=method,
-                                url_host=url_host,
-                                url_path=normalized_path,
-                                error_type="exception",
-                                app_name=APP_NAME,
-                            ).inc()
+                    HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL.labels(
+                        method=method,
+                        url_host=url_host,
+                        url_path=normalized_path,
+                        app_name=APP_NAME,
+                    ).inc()
 
-                        # 🧠 Memory (amostrado)
-                        if profile_memory:
-                            memory_delta = memory_profiler.get_memory_delta()
-                            if memory_delta is not None:
-                                HTTP_OUTGOING_REQUESTS_MEMORY_BYTES.labels(
-                                    method=method,
-                                    url_host=url_host,
-                                    url_path=normalized_path,
-                                    app_name=APP_NAME,
-                                    status=status,
-                                ).observe(abs(memory_delta))
+                    delta = memory_profiler.get_memory_delta()
 
-                                if span.is_recording():
-                                    span.set_attribute(
-                                        "memory.delta_bytes", memory_delta
-                                    )
+                    if delta is None:
+                        if recording:
+                            span.set_attribute("memory.sampled", True)
+                            span.set_attribute("memory.delta_available", False)
+                        return result
 
-                        # 📎 HTTP status code no span
-                        if response is not None:
-                            span.set_attribute(
-                                "http.status_code", response.status_code
-                            )
+                    if delta <= 0:
+                        if recording:
+                            span.set_attribute("memory.sampled", True)
+                            span.set_attribute("memory.delta_bytes", delta)
+                            span.set_attribute("memory.delta_ignored", True)
+                        return result
+
+                    HTTP_OUTGOING_REQUESTS_MEMORY_BYTES.labels(
+                        method=method,
+                        url_host=url_host,
+                        url_path=normalized_path,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).observe(delta)
+
+                    if recording:
+                        span.set_attribute("memory.sampled", True)
+                        span.set_attribute("memory.delta_bytes", delta)
+                        span.set_attribute("memory.delta_available", True)
+                        span.set_attribute("memory.delta_ignored", False)
+
+                return result
 
         return wrapper
 

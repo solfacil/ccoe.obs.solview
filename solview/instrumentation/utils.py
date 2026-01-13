@@ -44,22 +44,23 @@ def _normalize_url_path(url_path: str) -> str:
 class MemoryProfiler:
     def __init__(self, enabled: bool = True):
         self.enabled = enabled
-        self._start_traced = None
-        self._end_traced = None
+        self._start: Optional[int] = None
+        self._end: Optional[int] = None
 
     def start(self):
         if not self.enabled:
             return
 
-        tracemalloc.start()
-        self._start_traced = tracemalloc.get_traced_memory()[0]
+        if not tracemalloc.is_tracing():
+            tracemalloc.start()
+
+        self._start = tracemalloc.get_traced_memory()[0]
 
     def stop(self):
-        if not self.enabled:
+        if not self.enabled or self._start is None:
             return
 
-        self._end_traced = tracemalloc.get_traced_memory()[0]
-        tracemalloc.stop()
+        self._end = tracemalloc.get_traced_memory()[0]
 
     @contextmanager
     def measure(self):
@@ -74,9 +75,9 @@ class MemoryProfiler:
     def get_memory_delta(self) -> Optional[int]:
         if (
             not self.enabled
-            or self._start_traced is None
-            or self._end_traced is None
+            or self._start is None
+            or self._end is None
         ):
             return None
 
-        return self._end_traced - self._start_traced
+        return max(0, self._end - self._start)

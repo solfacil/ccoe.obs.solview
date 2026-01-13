@@ -1,5 +1,6 @@
 """Kafka instrumentation decorators combining OpenTelemetry tracing and Prometheus metrics."""
 
+import asyncio
 import time
 import random
 from collections.abc import Callable
@@ -14,6 +15,7 @@ from solview.instrumentation.utils import (
     MemoryProfiler,
 )
 from solview.metrics.custom import (
+    KAFKA_CONSUMER_MEMORY_SAMPLES_TOTAL,
     KAFKA_MESSAGES_CONSUMED_TOTAL,
     KAFKA_MESSAGES_PRODUCED_TOTAL,
     KAFKA_PRODUCER_DURATION_SECONDS,
@@ -22,6 +24,7 @@ from solview.metrics.custom import (
     KAFKA_MESSAGE_PROCESSING_DURATION_SECONDS,
     KAFKA_PRODUCER_MEMORY_BYTES,
     KAFKA_CONSUMER_MEMORY_BYTES,
+    KAFKA_PRODUCER_MEMORY_SAMPLES_TOTAL,
 )
 from solview.solview_logging import get_logger
 from solview.settings import SolviewSettings
@@ -38,11 +41,17 @@ def kafka_producer_instrumentation(operation: str = "send"):
 
     def decorator(func: Callable) -> Callable:
 
-        def _should_profile_memory() -> bool:
+        def should_profile_memory() -> bool:
             return (
                 settings.enable_memory_profiling
                 and random.random() < settings.sampling_memory_profiling
             )
+
+        async def _execute(func, *args, **kwargs):
+            result = func(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return await result
+            return result
 
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -50,10 +59,11 @@ def kafka_producer_instrumentation(operation: str = "send"):
             key = kwargs.get("key") or (args[2] if len(args) > 2 else "unknown")
 
             tracer = trace.get_tracer(f"kafka.producer.{func.__module__}")
-            start_time = time.time()
+            start_time = time.perf_counter()
             success = False
+            result = None
 
-            profile_memory = _should_profile_memory()
+            profile_memory = should_profile_memory()
             memory_profiler = MemoryProfiler(enabled=profile_memory)
 
             with tracer.start_as_current_span(
@@ -65,61 +75,82 @@ def kafka_producer_instrumentation(operation: str = "send"):
                     "messaging.kafka.message_key": key,
                 },
             ) as span:
-                with memory_profiler.measure():
-                    try:
-                        result = await func(*args, **kwargs)
-                        success = True
-                        span.set_status(Status(StatusCode.OK))
-                        return result
+                recording = span.is_recording()
+                if recording:
+                    span.set_attribute("memory.sampling.enabled", profile_memory)
 
-                    except Exception as e:
-                        KAFKA_PRODUCER_ERRORS_TOTAL.labels(
+                try:
+                    with memory_profiler.measure():
+                        result = await _execute(func, *args, **kwargs)
+
+                    success = True
+                    span.set_status(Status(StatusCode.OK))
+
+                except Exception as exc:
+                    KAFKA_PRODUCER_ERRORS_TOTAL.labels(
+                        topic=topic,
+                        error_type=type(exc).__name__,
+                        app_name=APP_NAME,
+                    ).inc()
+
+                    span.record_exception(exc)
+                    span.set_status(
+                        Status(StatusCode.ERROR, description=str(exc))
+                    )
+                    raise
+
+                finally:
+                    duration = time.perf_counter() - start_time
+                    status = "success" if success else "error"
+
+                    if success:
+                        KAFKA_MESSAGES_PRODUCED_TOTAL.labels(
                             topic=topic,
-                            error_type=type(e).__name__,
                             app_name=APP_NAME,
                         ).inc()
 
-                        span.set_status(
-                            Status(StatusCode.ERROR, description=str(e))
-                        )
-                        span.record_exception(e)
-                        logger.error(
-                            f"Error in kafka producer {operation} for topic {topic}: {e}"
-                        )
-                        raise
+                    KAFKA_PRODUCER_DURATION_SECONDS.labels(
+                        topic=topic,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).observe(duration)
 
-                    finally:
-                        duration = time.time() - start_time
-                        status = "success" if success else "error"
+                    if not profile_memory:
+                        return result
 
-                        # 🔢 Total produced (only on success)
-                        if success:
-                            KAFKA_MESSAGES_PRODUCED_TOTAL.labels(
-                                topic=topic,
-                                app_name=APP_NAME,
-                            ).inc()
+                    KAFKA_PRODUCER_MEMORY_SAMPLES_TOTAL.labels(
+                        topic=topic,
+                        app_name=APP_NAME,
+                    ).inc()
 
-                        # ⏱ Duration (sempre)
-                        KAFKA_PRODUCER_DURATION_SECONDS.labels(
-                            topic=topic,
-                            app_name=APP_NAME,
-                            status=status,
-                        ).observe(duration)
+                    delta = memory_profiler.get_memory_delta()
 
-                        # 🧠 Memory (amostrado)
-                        if profile_memory:
-                            memory_delta = memory_profiler.get_memory_delta()
-                            if memory_delta is not None:
-                                KAFKA_PRODUCER_MEMORY_BYTES.labels(
-                                    topic=topic,
-                                    app_name=APP_NAME,
-                                    status=status,
-                                ).observe(abs(memory_delta))
+                    if delta is None:
+                        if recording:
+                            span.set_attribute("memory.sampled", True)
+                            span.set_attribute("memory.delta_available", False)
+                        return result
 
-                                if span.is_recording():
-                                    span.set_attribute(
-                                        "memory.delta_bytes", memory_delta
-                                    )
+                    if delta <= 0:
+                        if recording:
+                            span.set_attribute("memory.sampled", True)
+                            span.set_attribute("memory.delta_bytes", delta)
+                            span.set_attribute("memory.delta_ignored", True)
+                        return result
+
+                    KAFKA_PRODUCER_MEMORY_BYTES.labels(
+                        topic=topic,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).observe(delta)
+
+                    if recording:
+                        span.set_attribute("memory.sampled", True)
+                        span.set_attribute("memory.delta_bytes", delta)
+                        span.set_attribute("memory.delta_available", True)
+                        span.set_attribute("memory.delta_ignored", False)
+
+                return result
 
         return wrapper
 
@@ -132,20 +163,28 @@ def kafka_consumer_instrumentation(operation: str = "process"):
 
     def decorator(func: Callable) -> Callable:
 
-        def _should_profile_memory() -> bool:
+        def should_profile_memory() -> bool:
             return (
                 settings.enable_memory_profiling
                 and random.random() < settings.sampling_memory_profiling
             )
 
+        async def _execute(func, *args, **kwargs):
+            result = func(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return await result
+            return result
+
         @wraps(func)
         async def wrapper(*args, **kwargs):
             topic = _extract_topic_from_args(args, kwargs)
-            tracer = trace.get_tracer(f"kafka.consumer.{func.__module__}")
-            start_time = time.time()
-            success = False
 
-            profile_memory = _should_profile_memory()
+            tracer = trace.get_tracer(f"kafka.consumer.{func.__module__}")
+            start_time = time.perf_counter()
+            success = False
+            result = None
+
+            profile_memory = should_profile_memory()
             memory_profiler = MemoryProfiler(enabled=profile_memory)
 
             with tracer.start_as_current_span(
@@ -153,66 +192,88 @@ def kafka_consumer_instrumentation(operation: str = "process"):
                 attributes=_get_base_kafka_attributes(
                     topic=topic,
                     operation=operation,
-                    role="consumer",
+                    system_type="consumer",
                 ),
             ) as span:
-                with memory_profiler.measure():
-                    try:
-                        result = await func(*args, **kwargs)
-                        success = True
-                        span.set_status(Status(StatusCode.OK))
-                        return result
+                recording = span.is_recording()
+                if recording:
+                    span.set_attribute("memory.sampling.enabled", profile_memory)
 
-                    except Exception as e:
-                        KAFKA_CONSUMER_ERRORS_TOTAL.labels(
+                try:
+                    with memory_profiler.measure():
+                        result = await _execute(func, *args, **kwargs)
+
+                    success = True
+                    span.set_status(Status(StatusCode.OK))
+
+                except Exception as exc:
+                    KAFKA_CONSUMER_ERRORS_TOTAL.labels(
+                        topic=topic,
+                        error_type=type(exc).__name__,
+                        app_name=APP_NAME,
+                    ).inc()
+
+                    span.record_exception(exc)
+                    span.set_status(
+                        Status(StatusCode.ERROR, description=str(exc))
+                    )
+                    raise
+
+                finally:
+                    duration = time.perf_counter() - start_time
+                    status = "success" if success else "error"
+
+                    if success and operation == "receive":
+                        KAFKA_MESSAGES_CONSUMED_TOTAL.labels(
                             topic=topic,
-                            error_type=type(e).__name__,
                             app_name=APP_NAME,
                         ).inc()
 
-                        span.set_status(
-                            Status(StatusCode.ERROR, description=str(e))
-                        )
-                        span.record_exception(e)
-                        logger.error(
-                            f"Error in kafka consumer {operation} for topic {topic}: {e}"
-                        )
-                        raise
+                    KAFKA_MESSAGE_PROCESSING_DURATION_SECONDS.labels(
+                        topic=topic,
+                        handler=operation,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).observe(duration)
 
-                    finally:
-                        duration = time.time() - start_time
-                        status = "success" if success else "error"
+                    if not profile_memory:
+                        return result
 
-                        # 🔢 Messages consumed (somente se sucesso e operação receive)
-                        if success and operation == "receive":
-                            KAFKA_MESSAGES_CONSUMED_TOTAL.labels(
-                                topic=topic,
-                                app_name=APP_NAME,
-                            ).inc()
+                    KAFKA_CONSUMER_MEMORY_SAMPLES_TOTAL.labels(
+                        topic=topic,
+                        handler=operation,
+                        app_name=APP_NAME,
+                    ).inc()
 
-                        # ⏱ Processing duration (sempre)
-                        KAFKA_MESSAGE_PROCESSING_DURATION_SECONDS.labels(
-                            topic=topic,
-                            handler=operation,
-                            app_name=APP_NAME,
-                            status=status,
-                        ).observe(duration)
+                    delta = memory_profiler.get_memory_delta()
 
-                        # 🧠 Memory (amostrado)
-                        if profile_memory:
-                            memory_delta = memory_profiler.get_memory_delta()
-                            if memory_delta is not None:
-                                KAFKA_CONSUMER_MEMORY_BYTES.labels(
-                                    topic=topic,
-                                    handler=operation,
-                                    app_name=APP_NAME,
-                                    status=status,
-                                ).observe(abs(memory_delta))
+                    if delta is None:
+                        if recording:
+                            span.set_attribute("memory.sampled", True)
+                            span.set_attribute("memory.delta_available", False)
+                        return result
 
-                                if span.is_recording():
-                                    span.set_attribute(
-                                        "memory.delta_bytes", memory_delta
-                                    )
+                    if delta <= 0:
+                        if recording:
+                            span.set_attribute("memory.sampled", True)
+                            span.set_attribute("memory.delta_bytes", delta)
+                            span.set_attribute("memory.delta_ignored", True)
+                        return result
+
+                    KAFKA_CONSUMER_MEMORY_BYTES.labels(
+                        topic=topic,
+                        handler=operation,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).observe(delta)
+
+                    if recording:
+                        span.set_attribute("memory.sampled", True)
+                        span.set_attribute("memory.delta_bytes", delta)
+                        span.set_attribute("memory.delta_available", True)
+                        span.set_attribute("memory.delta_ignored", False)
+
+                return result
 
         return wrapper
 
