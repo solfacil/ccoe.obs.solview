@@ -83,7 +83,7 @@ def http_client_instrumentation(operation: str = "request"):
 
                 try:
                     with memory_profiler.measure():
-                        result = await func(self, *args, **kwargs)
+                        result = await func(*args, **kwargs)
 
                     success = True
                     span.set_status(Status(StatusCode.OK))
