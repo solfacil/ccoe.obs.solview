@@ -1,6 +1,7 @@
 """Business operations instrumentation decorators combining OpenTelemetry tracing and Prometheus metrics."""
 
 import asyncio
+import inspect
 import random
 import time
 from collections.abc import Callable
@@ -37,12 +38,6 @@ def business_operation_instrumentation(operation: str):
                 and random.random() < settings.sampling_memory_profiling
             )
 
-        async def _execute(func, *args, **kwargs):
-            result = func(*args, **kwargs)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
-
         @wraps(func)
         async def wrapper(*args, **kwargs):
             tracer = trace.get_tracer(f"business.{func.__module__}")
@@ -63,7 +58,7 @@ def business_operation_instrumentation(operation: str):
 
                 try:
                     with memory_profiler.measure():
-                        result = await _execute(func, *args, **kwargs)
+                        result = await func(*args, **kwargs)
 
                     success = True
                     span.set_status(Status(StatusCode.OK))

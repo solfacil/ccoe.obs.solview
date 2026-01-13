@@ -1,6 +1,6 @@
 """HTTP client instrumentation decorators combining OpenTelemetry tracing and Prometheus metrics."""
 
-import asyncio
+import inspect
 import time
 import random
 import urllib.parse
@@ -38,15 +38,16 @@ def http_client_instrumentation(operation: str = "request"):
                 settings.enable_memory_profiling
                 and random.random() < settings.sampling_memory_profiling
             )
-
-        async def _execute(func, *args, **kwargs):
-            result = func(*args, **kwargs)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
-
+        
         @wraps(func)
-        async def wrapper(self, path: str, *args, **kwargs):
+        async def wrapper(*args, **kwargs):
+            sig = inspect.signature(func)
+            bound = sig.bind(*args, **kwargs)
+            bound.apply_defaults()
+
+            self = bound.arguments.get("self")
+            path = bound.arguments.get("path", "") or bound.arguments.get("url", "")
+
             full_url = self.base_url + path
             parsed_url = urllib.parse.urlparse(full_url)
 
@@ -82,7 +83,7 @@ def http_client_instrumentation(operation: str = "request"):
 
                 try:
                     with memory_profiler.measure():
-                        result = await _execute(func, *args, **kwargs)
+                        result = await func(self, *args, **kwargs)
 
                     success = True
                     span.set_status(Status(StatusCode.OK))

@@ -1,6 +1,6 @@
 """Kafka instrumentation decorators combining OpenTelemetry tracing and Prometheus metrics."""
 
-import asyncio
+import inspect
 import time
 import random
 from collections.abc import Callable
@@ -47,16 +47,14 @@ def kafka_producer_instrumentation(operation: str = "send"):
                 and random.random() < settings.sampling_memory_profiling
             )
 
-        async def _execute(func, *args, **kwargs):
-            result = func(*args, **kwargs)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
-
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            topic = kwargs.get("topic") or (args[1] if len(args) > 1 else "unknown")
-            key = kwargs.get("key") or (args[2] if len(args) > 2 else "unknown")
+            sig = inspect.signature(func)
+            bound = sig.bind(*args, **kwargs)
+            bound.apply_defaults()
+
+            topic = bound.arguments.get("topic")
+            key = bound.arguments.get("key", "") 
 
             tracer = trace.get_tracer(f"kafka.producer.{func.__module__}")
             start_time = time.perf_counter()
@@ -81,7 +79,7 @@ def kafka_producer_instrumentation(operation: str = "send"):
 
                 try:
                     with memory_profiler.measure():
-                        result = await _execute(func, *args, **kwargs)
+                        result = await func(*args, **kwargs)
 
                     success = True
                     span.set_status(Status(StatusCode.OK))
@@ -169,15 +167,13 @@ def kafka_consumer_instrumentation(operation: str = "process"):
                 and random.random() < settings.sampling_memory_profiling
             )
 
-        async def _execute(func, *args, **kwargs):
-            result = func(*args, **kwargs)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
-
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            topic = _extract_topic_from_args(args, kwargs)
+            sig = inspect.signature(func)
+            bound = sig.bind(*args, **kwargs)
+            bound.apply_defaults()
+
+            topic = bound.arguments.get("topic")
 
             tracer = trace.get_tracer(f"kafka.consumer.{func.__module__}")
             start_time = time.perf_counter()
@@ -201,7 +197,7 @@ def kafka_consumer_instrumentation(operation: str = "process"):
 
                 try:
                     with memory_profiler.measure():
-                        result = await _execute(func, *args, **kwargs)
+                        result = await func(*args, **kwargs)
 
                     success = True
                     span.set_status(Status(StatusCode.OK))
