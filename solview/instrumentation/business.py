@@ -10,6 +10,7 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 from solview.metrics.custom import (
+    BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL,
     BUSINESS_OPERATIONS_TOTAL,
     BUSINESS_OPERATIONS_DURATION_SECONDS,
     BUSINESS_OPERATIONS_MEMORY_BYTES,
@@ -23,95 +24,111 @@ settings = SolviewSettings()
 APP_NAME = settings.service_name
 
 
-def business_operation_instrumentation(operation_name: str):
+def business_operation_instrumentation(operation: str):
     """
     Decorator to instrument business operations with tracing and metrics.
-    Supports both async and sync functions.
     """
 
     def decorator(func: Callable) -> Callable:
 
-        def _should_profile_memory() -> bool:
-            sampling = random.random() < settings.sampling_memory_profiling
+        def should_profile_memory() -> bool:
             return (
                 settings.enable_memory_profiling
-                and sampling
+                and random.random() < settings.sampling_memory_profiling
             )
 
-        async def _execute_async(func, *args, **kwargs):
-            return await func(*args, **kwargs)
+        async def _execute(func, *args, **kwargs):
+            result = func(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return await result
+            return result
 
-        def _execute_sync(func, *args, **kwargs):
-            return func(*args, **kwargs)
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            tracer = trace.get_tracer(f"business.{func.__module__}")
+            start_time = time.perf_counter()
+            success = False
+            result = None
 
-        def _wrapper(executor):
-            @wraps(func)
-            async def wrapped(*args, **kwargs):
-                tracer = trace.get_tracer(f"business.{func.__module__}")
-                start_time = time.time()
-                success = False
+            profile_memory = should_profile_memory()
+            memory_profiler = MemoryProfiler(enabled=profile_memory)
 
-                profile_memory = _should_profile_memory()
-                memory_profiler = MemoryProfiler(enabled=profile_memory)
+            with tracer.start_as_current_span(
+                f"business.{operation}"
+            ) as span:
+                recording = span.is_recording()
 
-                with tracer.start_as_current_span(f"business.{operation_name}") as span:
+                if recording:
+                    span.set_attribute("memory.sampling.enabled", profile_memory)
+
+                try:
                     with memory_profiler.measure():
-                        try:
-                            result = executor(func, *args, **kwargs)
-                            if asyncio.iscoroutine(result):
-                                result = await result
+                        result = await _execute(func, *args, **kwargs)
 
-                            success = True
-                            span.set_status(Status(StatusCode.OK))
-                            return result
+                    success = True
+                    span.set_status(Status(StatusCode.OK))
 
-                        except Exception as e:
-                            span.set_status(
-                                Status(StatusCode.ERROR, description=str(e))
-                            )
-                            span.record_exception(e)
-                            raise
+                except Exception as exc:
+                    span.record_exception(exc)
+                    span.set_status(
+                        Status(StatusCode.ERROR, description=str(exc))
+                    )
+                    raise
+                    
+                finally:
+                    duration = time.perf_counter() - start_time
+                    status = "success" if success else "error"
 
-                        finally:
-                            duration = time.time() - start_time
-                            status = "success" if success else "error"
+                    BUSINESS_OPERATIONS_TOTAL.labels(
+                        operation=operation,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).inc()
 
-                            # ⏱ Duration (sempre)
-                            BUSINESS_OPERATIONS_DURATION_SECONDS.labels(
-                                operation=operation_name,
-                                app_name=APP_NAME,
-                                status=status,
-                            ).observe(duration)
+                    BUSINESS_OPERATIONS_DURATION_SECONDS.labels(
+                        operation=operation,
+                        app_name=APP_NAME,
+                        status=status,
+                    ).observe(duration)
 
-                            # 🔢 Total executions
-                            BUSINESS_OPERATIONS_TOTAL.labels(
-                                operation=operation_name,
-                                app_name=APP_NAME,
-                                status=status,
-                            ).inc()
+                    if not profile_memory:
+                        return result
+                    
+                    BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL.labels(
+                        operation=operation,
+                        app_name=APP_NAME,
+                    ).inc()
 
-                            # 🧠 Memory metrics (somente se amostrado)
-                            if profile_memory:
-                                memory_delta = memory_profiler.get_memory_delta()
-                                if memory_delta is not None:
-                                    BUSINESS_OPERATIONS_MEMORY_BYTES.labels(
-                                        operation=operation_name,
-                                        app_name=APP_NAME,
-                                        status=status,
-                                    ).observe(abs(memory_delta))
+                    delta = memory_profiler.get_memory_delta()
+                    
+                    if delta is None:
+                        if recording:
+                            span.set_attribute("memory.sampled", True)
+                            span.set_attribute("memory.delta_available", False)
+                        return result
 
-                                    if span.is_recording():
-                                        span.set_attribute(
-                                            "memory.delta_bytes",
-                                            memory_delta,
-                                        )
+                    if delta <= 0:
+                        if recording:
+                            span.set_attribute("memory.sampled", True)
+                            span.set_attribute("memory.delta_bytes", delta)
+                            span.set_attribute("memory.delta_ignored", True)
+                        return result
+                    
+                    BUSINESS_OPERATIONS_MEMORY_BYTES.labels(
+                            operation=operation,
+                            app_name=APP_NAME,
+                            status=status,
+                        ).observe(delta)
+                   
+                    if recording:
+                        span.set_attribute("memory.delta_bytes", delta)
+                        span.set_attribute("memory.sampled", True)
+                        span.set_attribute("memory.delta_ignored", False)
+                        span.set_attribute("memory.delta_available", True)
 
-            return wrapped
+                return result
 
-        if asyncio.iscoroutinefunction(func):
-            return _wrapper(_execute_async)
-        else:
-            return _wrapper(_execute_sync)
+        return wrapper
 
     return decorator
 
