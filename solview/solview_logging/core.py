@@ -134,9 +134,26 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
     logger.level("WARNING", color="<yellow>")
     logger.level("ERROR", color="<red>")
     logger.level("CRITICAL", color="<red><bold>")
-    
+
+    if settings.environment == "unittest":
+        logger.add(
+            sink=sys.stderr,  # Usa stderr para aparecer como "Captured log call" no pytest
+            format=(
+                "{time:YYYY-MM-DD HH:mm:ss.SSS} | "
+                "{level: <8} | "
+                "{name}:{function}:{line} | "
+                "trace_id={extra[trace_id]} | "
+                "span_id={extra[span_id]} | "
+                "{message}"
+            ),
+            level=settings.log_level,
+            diagnose=False,
+            catch=True,
+            filter=combined_filter,
+            colorize=True,  # Sem cores para melhor legibilidade em testes
+        )
     # Ambiente dev: formato legível colorido
-    if settings.environment == "dev":
+    elif settings.environment == "dev":
         logger.add(
             sink=sys.stdout,
             format=(
