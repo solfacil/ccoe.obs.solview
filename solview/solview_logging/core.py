@@ -18,6 +18,10 @@ except (ImportError, ValueError):
     except ImportError:
         SolviewSettings = None
 
+class PropagateToLogging(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        logging.getLogger(record.name).handle(record)
+
 def trace_context_filter(record):
     try:
         from opentelemetry.trace import get_current_span, format_trace_id, format_span_id
@@ -136,6 +140,7 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
     logger.level("CRITICAL", color="<red><bold>")
 
     if settings.environment == "unittest":
+        logger.add(PropagateToLogging(), level=settings.log_level)
         logger.add(
             sink=sys.stderr,  # Usa stderr para aparecer como "Captured log call" no pytest
             format=(
