@@ -163,6 +163,9 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
             catch=True,
             filter=combined_filter
         )
+    
+    if settings.environment == "unittest":
+        logger.add(logging.getLogger("unittest"), level=settings.log_level)
 
     _redirect_std_logging()
     # _exclude_uvicorn_logs()
