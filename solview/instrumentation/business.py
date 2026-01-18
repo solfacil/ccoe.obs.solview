@@ -16,7 +16,7 @@ from solview.metrics.custom import (
     BUSINESS_OPERATIONS_DURATION_SECONDS,
     BUSINESS_OPERATIONS_MEMORY_BYTES,
 )
-from solview.instrumentation.utils import MemoryProfiler, generate_delta_metrics
+from solview.instrumentation.utils import MemoryProfiler
 from solview.solview_logging import get_logger
 from solview.settings import SolviewSettings
 
@@ -38,6 +38,50 @@ def business_operation_instrumentation(operation: str):
                 and random.random() < settings.sampling_memory_profiling
             )
 
+        def generate_delta_metrics(
+            profile_memory,
+            memory_profiler,
+            recording,
+            span,
+            status,
+            operation,
+            app_name,
+        ):
+            if not profile_memory:
+                return
+            
+            BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL.labels(
+                operation=operation,
+                app_name=app_name,
+            ).inc()
+
+            delta = memory_profiler.get_memory_delta()
+            
+            if delta is None:
+                if recording:
+                    span.set_attribute("memory.sampled", True)
+                    span.set_attribute("memory.delta_available", False)
+                return
+
+            if delta <= 0:
+                if recording:
+                    span.set_attribute("memory.sampled", True)
+                    span.set_attribute("memory.delta_bytes", delta)
+                    span.set_attribute("memory.delta_ignored", True)
+                return
+
+            BUSINESS_OPERATIONS_MEMORY_BYTES.labels(
+                operation=operation,
+                app_name=app_name,
+                status=status,
+            ).observe(delta)
+            
+            if recording:
+                span.set_attribute("memory.delta_bytes", delta)
+                span.set_attribute("memory.sampled", True)
+                span.set_attribute("memory.delta_ignored", False)
+                span.set_attribute("memory.delta_available", True)
+                
         @wraps(func)
         async def wrapper(*args, **kwargs):
             tracer = trace.get_tracer(f"business.{func.__module__}")
@@ -88,17 +132,14 @@ def business_operation_instrumentation(operation: str):
                     ).observe(duration)
 
                     generate_delta_metrics(
-                        profile_memory,
-                        memory_profiler,
-                        recording,
-                        span,
-                        status,
-                        operation,
-                        BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL,
-                        BUSINESS_OPERATIONS_MEMORY_BYTES,
-                        APP_NAME,
+                        profile_memory=profile_memory,
+                        memory_profiler=memory_profiler,
+                        recording=recording,
+                        span=span,
+                        status=status,
+                        operation=operation,
+                        app_name=APP_NAME,
                     )
-
         return wrapper
 
     return decorator

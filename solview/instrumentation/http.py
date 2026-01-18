@@ -10,7 +10,7 @@ from functools import wraps
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
-from solview.instrumentation.utils import _normalize_url_path, MemoryProfiler, generate_delta_metrics
+from solview.instrumentation.utils import _normalize_url_path, MemoryProfiler
 from solview.metrics.custom import (
     HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL,
     HTTP_OUTGOING_REQUESTS_TOTAL,
@@ -38,6 +38,56 @@ def http_client_instrumentation(operation: str = "request"):
                 settings.enable_memory_profiling
                 and random.random() < settings.sampling_memory_profiling
             )
+        
+        def generate_delta_metrics(
+            profile_memory,
+            memory_profiler,
+            recording,
+            span,
+            status,
+            method,
+            url_host,
+            url_path,
+            app_name,
+        ):
+            if not profile_memory:
+                return
+            
+            HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL.labels(
+                method=method,
+                url_host=url_host,
+                url_path=url_path,
+                app_name=app_name,
+            ).inc()
+
+            delta = memory_profiler.get_memory_delta()
+            
+            if delta is None:
+                if recording:
+                    span.set_attribute("memory.sampled", True)
+                    span.set_attribute("memory.delta_available", False)
+                return
+
+            if delta <= 0:
+                if recording:
+                    span.set_attribute("memory.sampled", True)
+                    span.set_attribute("memory.delta_bytes", delta)
+                    span.set_attribute("memory.delta_ignored", True)
+                return
+            
+            HTTP_OUTGOING_REQUESTS_MEMORY_BYTES.labels(
+                method=method,
+                url_host=url_host,
+                url_path=url_path,
+                app_name=app_name,
+                status=status,
+            ).observe(delta)
+            
+            if recording:
+                span.set_attribute("memory.delta_bytes", delta)
+                span.set_attribute("memory.sampled", True)
+                span.set_attribute("memory.delta_ignored", False)
+                span.set_attribute("memory.delta_available", True)
         
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -134,15 +184,15 @@ def http_client_instrumentation(operation: str = "request"):
                         ).inc()
 
                     generate_delta_metrics(
-                        profile_memory,
-                        memory_profiler,
-                        recording,
-                        span,
-                        status,
-                        operation,
-                        HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL,
-                        HTTP_OUTGOING_REQUESTS_MEMORY_BYTES,
-                        APP_NAME,
+                        profile_memory=profile_memory,
+                        memory_profiler=memory_profiler,
+                        recording=recording,
+                        span=span,
+                        status=status,
+                        method=method,
+                        url_host=url_host,
+                        url_path=normalized_path,
+                        app_name=APP_NAME,
                     )
         return wrapper
     return decorator

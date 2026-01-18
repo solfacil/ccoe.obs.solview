@@ -13,7 +13,6 @@ from solview.instrumentation.utils import (
     _extract_topic_from_args,
     _get_base_kafka_attributes,
     MemoryProfiler,
-    generate_delta_metrics,
 )
 from solview.metrics.custom import (
     KAFKA_CONSUMER_MEMORY_SAMPLES_TOTAL,
@@ -47,6 +46,50 @@ def kafka_producer_instrumentation(operation: str = "send"):
                 settings.enable_memory_profiling
                 and random.random() < settings.sampling_memory_profiling
             )
+        
+        def generate_delta_metrics(
+            profile_memory,
+            memory_profiler,
+            recording,
+            span,
+            status,
+            topic,
+            app_name,
+        ):
+            if not profile_memory:
+                return
+            
+            KAFKA_PRODUCER_MEMORY_SAMPLES_TOTAL.labels(
+                topic=topic,
+                app_name=app_name,
+            ).inc()
+
+            delta = memory_profiler.get_memory_delta()
+            
+            if delta is None:
+                if recording:
+                    span.set_attribute("memory.sampled", True)
+                    span.set_attribute("memory.delta_available", False)
+                return
+
+            if delta <= 0:
+                if recording:
+                    span.set_attribute("memory.sampled", True)
+                    span.set_attribute("memory.delta_bytes", delta)
+                    span.set_attribute("memory.delta_ignored", True)
+                return
+            
+            KAFKA_PRODUCER_MEMORY_BYTES.labels(
+                topic=topic,
+                app_name=app_name,
+                status=status,
+            ).observe(delta)
+            
+            if recording:
+                span.set_attribute("memory.delta_bytes", delta)
+                span.set_attribute("memory.sampled", True)
+                span.set_attribute("memory.delta_ignored", False)
+                span.set_attribute("memory.delta_available", True)
 
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -116,15 +159,13 @@ def kafka_producer_instrumentation(operation: str = "send"):
                     ).observe(duration)
 
                     generate_delta_metrics(
-                        profile_memory,
-                        memory_profiler,
-                        recording,
-                        span,
-                        status,
-                        operation,
-                        KAFKA_PRODUCER_MEMORY_SAMPLES_TOTAL,
-                        KAFKA_PRODUCER_MEMORY_BYTES,
-                        APP_NAME,
+                        profile_memory=profile_memory,
+                        memory_profiler=memory_profiler,
+                        recording=recording,
+                        span=span,
+                        status=status,
+                        topic=topic,
+                        app_name=APP_NAME,
                     )
         return wrapper
     return decorator
@@ -141,6 +182,53 @@ def kafka_consumer_instrumentation(operation: str = "process"):
                 settings.enable_memory_profiling
                 and random.random() < settings.sampling_memory_profiling
             )
+        
+        def generate_delta_metrics_consumer(
+            profile_memory,
+            memory_profiler,
+            recording,
+            span,
+            status,
+            topic,
+            handler,
+            app_name,
+        ):
+            if not profile_memory:
+                return
+            
+            KAFKA_CONSUMER_MEMORY_SAMPLES_TOTAL.labels(
+                topic=topic,
+                handler=handler,
+                app_name=app_name,
+            ).inc()
+
+            delta = memory_profiler.get_memory_delta()
+            
+            if delta is None:
+                if recording:
+                    span.set_attribute("memory.sampled", True)
+                    span.set_attribute("memory.delta_available", False)
+                return
+
+            if delta <= 0:
+                if recording:
+                    span.set_attribute("memory.sampled", True)
+                    span.set_attribute("memory.delta_bytes", delta)
+                    span.set_attribute("memory.delta_ignored", True)
+                return
+            
+            KAFKA_CONSUMER_MEMORY_BYTES.labels(
+                topic=topic,
+                handler=operation,
+                app_name=app_name,
+                status=status,
+            ).observe(delta)
+            
+            if recording:
+                span.set_attribute("memory.delta_bytes", delta)
+                span.set_attribute("memory.sampled", True)
+                span.set_attribute("memory.delta_ignored", False)
+                span.set_attribute("memory.delta_available", True)
 
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -208,16 +296,15 @@ def kafka_consumer_instrumentation(operation: str = "process"):
                         status=status,
                     ).observe(duration)
 
-                    generate_delta_metrics(
-                        profile_memory,
-                        memory_profiler,
-                        recording,
-                        span,
-                        status,
-                        operation,
-                        KAFKA_CONSUMER_MEMORY_SAMPLES_TOTAL,
-                        KAFKA_CONSUMER_MEMORY_BYTES,
-                        APP_NAME,
+                    generate_delta_metrics_consumer(
+                        profile_memory=profile_memory,
+                        memory_profiler=memory_profiler,
+                        recording=recording,
+                        span=span,
+                        status=status,
+                        topic=topic,
+                        handler=operation,
+                        app_name=APP_NAME,
                     )
         return wrapper
     return decorator
