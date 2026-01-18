@@ -19,6 +19,53 @@ def _extract_topic_from_args(args, kwargs):
     return topic if topic != "unknown" else "all_topics"
 
 
+def generate_delta_metrics(
+    profile_memory,
+    memory_profiler,
+    recording,
+    span,
+    status,
+    operation,
+    memory_samples_total,
+    memory_bytes,
+    app_name,
+):
+    if not profile_memory:
+        return
+    
+    memory_samples_total.labels(
+        operation=operation,
+        app_name=app_name,
+    ).inc()
+
+    delta = memory_profiler.get_memory_delta()
+    
+    if delta is None:
+        if recording:
+            span.set_attribute("memory.sampled", True)
+            span.set_attribute("memory.delta_available", False)
+        return
+
+    if delta <= 0:
+        if recording:
+            span.set_attribute("memory.sampled", True)
+            span.set_attribute("memory.delta_bytes", delta)
+            span.set_attribute("memory.delta_ignored", True)
+        return
+    
+    memory_bytes.labels(
+            operation=operation,
+            app_name=app_name,
+            status=status,
+        ).observe(delta)
+    
+    if recording:
+        span.set_attribute("memory.delta_bytes", delta)
+        span.set_attribute("memory.sampled", True)
+        span.set_attribute("memory.delta_ignored", False)
+        span.set_attribute("memory.delta_available", True)
+        
+        
 def _get_base_kafka_attributes(topic, operation, system_type):
     return {
         "messaging.system": "kafka",

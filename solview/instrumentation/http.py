@@ -10,7 +10,7 @@ from functools import wraps
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
-from solview.instrumentation.utils import _normalize_url_path, MemoryProfiler
+from solview.instrumentation.utils import _normalize_url_path, MemoryProfiler, generate_delta_metrics
 from solview.metrics.custom import (
     HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL,
     HTTP_OUTGOING_REQUESTS_TOTAL,
@@ -87,6 +87,7 @@ def http_client_instrumentation(operation: str = "request"):
 
                     success = True
                     span.set_status(Status(StatusCode.OK))
+                    return result
 
                 except Exception as exc:
                     span.record_exception(exc)
@@ -132,48 +133,17 @@ def http_client_instrumentation(operation: str = "request"):
                             app_name=APP_NAME,
                         ).inc()
 
-                    if not profile_memory:
-                        return result
-
-                    HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL.labels(
-                        method=method,
-                        url_host=url_host,
-                        url_path=normalized_path,
-                        app_name=APP_NAME,
-                    ).inc()
-
-                    delta = memory_profiler.get_memory_delta()
-
-                    if delta is None:
-                        if recording:
-                            span.set_attribute("memory.sampled", True)
-                            span.set_attribute("memory.delta_available", False)
-                        return result
-
-                    if delta <= 0:
-                        if recording:
-                            span.set_attribute("memory.sampled", True)
-                            span.set_attribute("memory.delta_bytes", delta)
-                            span.set_attribute("memory.delta_ignored", True)
-                        return result
-
-                    HTTP_OUTGOING_REQUESTS_MEMORY_BYTES.labels(
-                        method=method,
-                        url_host=url_host,
-                        url_path=normalized_path,
-                        app_name=APP_NAME,
-                        status=status,
-                    ).observe(delta)
-
-                    if recording:
-                        span.set_attribute("memory.sampled", True)
-                        span.set_attribute("memory.delta_bytes", delta)
-                        span.set_attribute("memory.delta_available", True)
-                        span.set_attribute("memory.delta_ignored", False)
-
-                return result
-
+                    generate_delta_metrics(
+                        profile_memory,
+                        memory_profiler,
+                        recording,
+                        span,
+                        status,
+                        operation,
+                        HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL,
+                        HTTP_OUTGOING_REQUESTS_MEMORY_BYTES,
+                        APP_NAME,
+                    )
         return wrapper
-
     return decorator
 

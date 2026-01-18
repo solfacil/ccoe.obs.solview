@@ -16,7 +16,7 @@ from solview.metrics.custom import (
     BUSINESS_OPERATIONS_DURATION_SECONDS,
     BUSINESS_OPERATIONS_MEMORY_BYTES,
 )
-from solview.instrumentation.utils import MemoryProfiler
+from solview.instrumentation.utils import MemoryProfiler, generate_delta_metrics
 from solview.solview_logging import get_logger
 from solview.settings import SolviewSettings
 
@@ -62,6 +62,7 @@ def business_operation_instrumentation(operation: str):
 
                     success = True
                     span.set_status(Status(StatusCode.OK))
+                    return result
 
                 except Exception as exc:
                     span.record_exception(exc)
@@ -86,42 +87,17 @@ def business_operation_instrumentation(operation: str):
                         status=status,
                     ).observe(duration)
 
-                    if not profile_memory:
-                        return result
-                    
-                    BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL.labels(
-                        operation=operation,
-                        app_name=APP_NAME,
-                    ).inc()
-
-                    delta = memory_profiler.get_memory_delta()
-                    
-                    if delta is None:
-                        if recording:
-                            span.set_attribute("memory.sampled", True)
-                            span.set_attribute("memory.delta_available", False)
-                        return result
-
-                    if delta <= 0:
-                        if recording:
-                            span.set_attribute("memory.sampled", True)
-                            span.set_attribute("memory.delta_bytes", delta)
-                            span.set_attribute("memory.delta_ignored", True)
-                        return result
-                    
-                    BUSINESS_OPERATIONS_MEMORY_BYTES.labels(
-                            operation=operation,
-                            app_name=APP_NAME,
-                            status=status,
-                        ).observe(delta)
-                   
-                    if recording:
-                        span.set_attribute("memory.delta_bytes", delta)
-                        span.set_attribute("memory.sampled", True)
-                        span.set_attribute("memory.delta_ignored", False)
-                        span.set_attribute("memory.delta_available", True)
-
-                return result
+                    generate_delta_metrics(
+                        profile_memory,
+                        memory_profiler,
+                        recording,
+                        span,
+                        status,
+                        operation,
+                        BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL,
+                        BUSINESS_OPERATIONS_MEMORY_BYTES,
+                        APP_NAME,
+                    )
 
         return wrapper
 
