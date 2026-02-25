@@ -18,8 +18,6 @@ from opentelemetry.trace import set_tracer_provider
 from opentelemetry.util.http.httplib import HttpClientInstrumentor
 from solview.settings import SolviewSettings
 
-settings = SolviewSettings()
-
 logger = logging.getLogger("solview.tracing.core")
 
 
@@ -96,6 +94,7 @@ def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
     """
     Lê variáveis de ambiente padrão OpenTelemetry/Solview e chama `setup_tracer` com argumentos apropriados.
     """
+    settings = SolviewSettings()  # vai instanciar e procurar pelas envs apenas qnd a func for chamada no código
     return setup_tracer(
         app=app,
         service_name=settings.service_name_composed,
