@@ -69,7 +69,7 @@ def create_application() -> FastAPI:
     app = FastAPI(title="Solview Demo App")
     
     # 2. Middleware de Métricas Prometheus do Solview
-    app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
+    # app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
     
     # 3. Endpoint de Métricas do Solview
     app.add_route("/metrics", prometheus_metrics_response)

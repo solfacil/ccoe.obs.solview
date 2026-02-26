@@ -1,29 +1,17 @@
-# main.py
-from fastapi import FastAPI
-from solview import SolviewSettings, setup_logger, setup_tracer, get_logger
-from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
-import random
+from fastapi import FastAPI, HTTPException
 import asyncio
-import httpx
+import random
 
-settings = SolviewSettings(
-    environment="prd",
-    service_name="aplicacao-demo",
-    domain="exemplo",
-    subdomain="demo",
-    version="1.0.0",
-)
-setup_logger(settings)
-logger = get_logger(__name__)
+### Opeltel
+import os
 
-app = FastAPI()
 
-# Métricas
-app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
-app.add_route("/metrics", prometheus_metrics_response)
+app = FastAPI(title="Microserviço de Pagamentos (Exemplo)")
 
-# Tracing
-setup_tracer(settings, app)
+# ---------------------------------------------------------
+# MÁGICA DA OBSERVABILIDADE AQUI
+# Inicializa o Instrumentator e expõe o endpoint /metrics
+# ---------------------------------------------------------
 
 @app.get("/")
 async def root():
@@ -60,3 +48,17 @@ async def http_request():
         raise HTTPException(status_code=500, detail=str(err))
     
     return response.json()
+
+@app.get("/metrics")
+def get_metrics():
+    # Isso obriga o FastAPI a ler o "Balde Global"
+    # que é exatamente onde o OpenTelemetry (PrometheusMetricReader) escreve!
+    return Response(
+        content=generate_latest(REGISTRY), 
+        media_type=CONTENT_TYPE_LATEST
+    )
+
+if __name__ == "__main__":
+    import uvicorn
+    # Execute rodando: python main.py
+    uvicorn.run(app, host="0.0.0.0", port=8000)

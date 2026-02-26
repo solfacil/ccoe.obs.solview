@@ -9,6 +9,7 @@ from functools import wraps
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
+from solview.config import get_settings
 from solview.instrumentation.utils import (
     _extract_topic_from_args,
     _get_base_kafka_attributes,
@@ -27,11 +28,8 @@ from solview.metrics.custom import (
     KAFKA_PRODUCER_MEMORY_SAMPLES_TOTAL,
 )
 from solview.solview_logging import get_logger
-from solview.settings import SolviewSettings
 
 logger = get_logger(__name__)
-settings = SolviewSettings()
-APP_NAME = settings.service_name
 
 
 def kafka_producer_instrumentation(operation: str = "send"):
@@ -40,13 +38,6 @@ def kafka_producer_instrumentation(operation: str = "send"):
     """
 
     def decorator(func: Callable) -> Callable:
-
-        def should_profile_memory() -> bool:
-            return (
-                settings.enable_memory_profiling
-                and random.random() < settings.sampling_memory_profiling
-            )
-        
         def generate_delta_metrics(
             profile_memory,
             memory_profiler,
@@ -105,7 +96,12 @@ def kafka_producer_instrumentation(operation: str = "send"):
             success = False
             result = None
 
-            profile_memory = should_profile_memory()
+            settings = get_settings()
+            app_name = settings.service_name
+            profile_memory = (
+                settings.enable_memory_profiling
+                and random.random() < settings.sampling_memory_profiling
+            )
             memory_profiler = MemoryProfiler(enabled=profile_memory)
 
             with tracer.start_as_current_span(
@@ -133,7 +129,7 @@ def kafka_producer_instrumentation(operation: str = "send"):
                     KAFKA_PRODUCER_ERRORS_TOTAL.labels(
                         topic=topic,
                         error_type=type(exc).__name__,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                     ).inc()
 
                     span.record_exception(exc)
@@ -149,12 +145,12 @@ def kafka_producer_instrumentation(operation: str = "send"):
                     if success:
                         KAFKA_MESSAGES_PRODUCED_TOTAL.labels(
                             topic=topic,
-                            app_name=APP_NAME,
+                            app_name=app_name,
                         ).inc()
 
                     KAFKA_PRODUCER_DURATION_SECONDS.labels(
                         topic=topic,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                         status=status,
                     ).observe(duration)
 
@@ -165,7 +161,7 @@ def kafka_producer_instrumentation(operation: str = "send"):
                         span=span,
                         status=status,
                         topic=topic,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                     )
         return wrapper
     return decorator
@@ -176,13 +172,6 @@ def kafka_consumer_instrumentation(operation: str = "process"):
     """
 
     def decorator(func: Callable) -> Callable:
-
-        def should_profile_memory() -> bool:
-            return (
-                settings.enable_memory_profiling
-                and random.random() < settings.sampling_memory_profiling
-            )
-        
         def generate_delta_metrics_consumer(
             profile_memory,
             memory_profiler,
@@ -243,7 +232,12 @@ def kafka_consumer_instrumentation(operation: str = "process"):
             success = False
             result = None
 
-            profile_memory = should_profile_memory()
+            settings = get_settings()
+            app_name = settings.service_name
+            profile_memory = (
+                settings.enable_memory_profiling
+                and random.random() < settings.sampling_memory_profiling
+            )
             memory_profiler = MemoryProfiler(enabled=profile_memory)
 
             with tracer.start_as_current_span(
@@ -270,7 +264,7 @@ def kafka_consumer_instrumentation(operation: str = "process"):
                     KAFKA_CONSUMER_ERRORS_TOTAL.labels(
                         topic=topic,
                         error_type=type(exc).__name__,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                     ).inc()
 
                     span.record_exception(exc)
@@ -286,13 +280,13 @@ def kafka_consumer_instrumentation(operation: str = "process"):
                     if success and operation == "receive":
                         KAFKA_MESSAGES_CONSUMED_TOTAL.labels(
                             topic=topic,
-                            app_name=APP_NAME,
+                            app_name=app_name,
                         ).inc()
 
                     KAFKA_MESSAGE_PROCESSING_DURATION_SECONDS.labels(
                         topic=topic,
                         handler=operation,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                         status=status,
                     ).observe(duration)
 
@@ -304,7 +298,7 @@ def kafka_consumer_instrumentation(operation: str = "process"):
                         status=status,
                         topic=topic,
                         handler=operation,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                     )
         return wrapper
     return decorator

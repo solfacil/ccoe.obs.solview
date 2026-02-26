@@ -10,6 +10,7 @@ from functools import wraps
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
+from solview.config import get_settings
 from solview.instrumentation.utils import _normalize_url_path, MemoryProfiler
 from solview.metrics.custom import (
     HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL,
@@ -19,11 +20,8 @@ from solview.metrics.custom import (
     HTTP_OUTGOING_REQUESTS_MEMORY_BYTES,
 )
 from solview.solview_logging import get_logger
-from solview.settings import SolviewSettings
 
 logger = get_logger(__name__)
-settings = SolviewSettings()
-APP_NAME = settings.service_name
 
 
 def http_client_instrumentation(operation: str = "request"):
@@ -32,13 +30,6 @@ def http_client_instrumentation(operation: str = "request"):
     """
 
     def decorator(func: Callable) -> Callable:
-
-        def should_profile_memory() -> bool:
-            return (
-                settings.enable_memory_profiling
-                and random.random() < settings.sampling_memory_profiling
-            )
-        
         def generate_delta_metrics(
             profile_memory,
             memory_profiler,
@@ -111,7 +102,12 @@ def http_client_instrumentation(operation: str = "request"):
             success = False
             result = None
 
-            profile_memory = should_profile_memory()
+            settings = get_settings()
+            app_name = settings.service_name
+            profile_memory = (
+                settings.enable_memory_profiling
+                and random.random() < settings.sampling_memory_profiling
+            )
             memory_profiler = MemoryProfiler(enabled=profile_memory)
 
             with tracer.start_as_current_span(
@@ -162,7 +158,7 @@ def http_client_instrumentation(operation: str = "request"):
                         status_code=status_code,
                         url_host=url_host,
                         url_path=normalized_path,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                         status=status,
                     ).inc()
 
@@ -170,7 +166,7 @@ def http_client_instrumentation(operation: str = "request"):
                         method=method,
                         url_host=url_host,
                         url_path=normalized_path,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                         status=status,
                     ).observe(duration)
 
@@ -180,7 +176,7 @@ def http_client_instrumentation(operation: str = "request"):
                             url_host=url_host,
                             url_path=normalized_path,
                             error_type="exception",
-                            app_name=APP_NAME,
+                            app_name=app_name,
                         ).inc()
 
                     generate_delta_metrics(
@@ -192,7 +188,7 @@ def http_client_instrumentation(operation: str = "request"):
                         method=method,
                         url_host=url_host,
                         url_path=normalized_path,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                     )
         return wrapper
     return decorator

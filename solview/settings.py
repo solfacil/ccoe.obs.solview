@@ -13,6 +13,46 @@ def _try_load_dotenv():
 
 _try_load_dotenv()
 
+
+class LoggingSettings(BaseModel):
+    """
+    Configuração para Logging SolView.
+
+    Exemplo de uso:
+        LoggingSettings(
+            log_level="INFO", 
+            environment="production",
+            service_name="minha-api",
+            domain="solarview",
+            subdomain="observabilidade",
+            version="1.0.0",
+            ignore_mask=False
+        )
+    """
+    ignore_mask: bool = False
+
+
+class TracingSettings(BaseModel):
+    """
+    Configuração para Tracing SolView.
+    """
+    otlp_exporter_protocol: str = "grpc"
+    otlp_exporter_host: str = "localhost"
+    otlp_exporter_port: int = 4317
+    otlp_exporter_http_encrypted: bool = False
+    otlp_agent_auth_token: str = ""
+    otlp_sqlalchemy_enable_commenter: bool = False
+    trace_sampler: str = "always_on"
+    trace_sampling_ratio: float = 1.0
+
+class MetricsSettings(BaseModel):
+    """
+    Configuração para Metrics SolView.
+    """
+    metrics_enabled: bool = True
+    metrics_port: int = 9090
+    metrics_path: str = "/metrics"
+
 class SolviewSettings(BaseModel):
     """
     Configurações globais do Solview.
@@ -27,25 +67,12 @@ class SolviewSettings(BaseModel):
     # Namespace semântico OTEL (ex.: time/produto ou domínio)
     service_namespace: str = os.getenv("OTEL_SERVICE_NAMESPACE", os.getenv("SOLVIEW_SERVICE_NAMESPACE", "solview"))
     
-    # OpenTelemetry Configuration - Production Ready
-    otlp_exporter_protocol: str = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
-    otlp_exporter_host: str = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost")
-    otlp_exporter_port: int = int(os.getenv("OTEL_EXPORTER_OTLP_PORT", "4317"))
-    otlp_exporter_http_encrypted: bool = os.getenv("OTEL_EXPORTER_OTLP_HTTP_ENCRYPTED", "true").lower() == "true"
-    otlp_agent_auth_token: str = os.getenv("OTEL_EXPORTER_OTLP_AUTH_TOKEN", "")
-    otlp_sqlalchemy_enable_commenter: bool = os.getenv("OTEL_SQLALCHEMY_ENABLE_COMMENTER", "true").lower() == "true"
-    # Sampler
-    trace_sampler: str = os.getenv("OTEL_TRACES_SAMPLER", "always_on")
-    trace_sampling_ratio: float = float(os.getenv("OTEL_TRACES_SAMPLER_ARG", "1.0"))
+    # Settings
+    logging_settings: LoggingSettings = LoggingSettings()
+    tracing_settings: TracingSettings = TracingSettings()
+    metrics_settings: MetricsSettings = MetricsSettings()
     
-    # Security and Compliance
-    enable_data_masking: bool = os.getenv("SOLVIEW_ENABLE_DATA_MASKING", "true").lower() == "true"    
-    # Metrics Configuration
-    metrics_enabled: bool = os.getenv("SOLVIEW_METRICS_ENABLED", "true").lower() == "true"
-    metrics_port: int = int(os.getenv("SOLVIEW_METRICS_PORT", "9090"))
-    metrics_path: str = os.getenv("SOLVIEW_METRICS_PATH", "/metrics")
     # Memory profiling configuration
-    
     enable_memory_profiling: bool = os.getenv("SOLVIEW_ENABLE_MEMORY_PROFILING", "false").lower() == "true" # enabled impacting the performance of the application
     #recomendation: local=1.0, staging=0.1, production=0.01, production_incident=0.05
     sampling_memory_profiling: float = float(os.getenv("SOLVIEW_SAMPLING_MEMORY_PROFILING", "1.0")) 
@@ -70,6 +97,10 @@ class SolviewSettings(BaseModel):
     @property
     def is_production(self) -> bool:
         return self.environment_effective == "prd"
+
+    @property
+    def log_level(self) -> str:
+        return self.logging_settings.log_level
     
     @property
     def otlp_endpoint_full(self) -> str:

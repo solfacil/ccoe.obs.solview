@@ -4,16 +4,7 @@ class LoggingSettings(BaseModel):
     """
     Configuração para Logging SolView.
 
-    Exemplo de uso:
-        LoggingSettings(
-            log_level="INFO", 
-            environment="production",
-            service_name="minha-api",
-            domain="solarview",
-            subdomain="observabilidade",
-            version="1.0.0",
-            ignore_mask=False
-        )
+    
     """
     log_level: str = "INFO"
     environment: str = "dev"

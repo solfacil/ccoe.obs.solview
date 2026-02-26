@@ -3,8 +3,9 @@ import orjson
 from datetime import timedelta
 from typing import Any, TextIO
 from loguru._handler import Message
-from .settings import LoggingSettings
 from .masking import DataMasker
+from solview.config import get_settings
+settings = get_settings()
 
 def _mask_dict_values(data: dict, masker: DataMasker) -> dict:
     """
@@ -37,14 +38,13 @@ def _mask_dict_values(data: dict, masker: DataMasker) -> dict:
 
 
 async def ecs_sink(
-    message: Message, settings: LoggingSettings, stream: TextIO = sys.stdout
+    message: Message, stream: TextIO = sys.stdout
 ) -> None:
     """
     Emit log estruturado no padrão ECS (Elastic Common Schema), compatível com Elastic e Loki.
 
     Args:
         message (Message): Mensagem recebida pelo Loguru.
-        settings (LoggingSettings): Configuração para enriquecer o log.
         stream (TextIO): Saída, padrão sys.stdout.
     """
     record = message.record

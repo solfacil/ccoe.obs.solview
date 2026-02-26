@@ -15,80 +15,86 @@ from opentelemetry.sdk.trace import TracerProvider, sampling
 from opentelemetry.semconv.resource import ResourceAttributes
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter, SimpleSpanProcessor
 from opentelemetry.trace import set_tracer_provider
+from opentelemetry.metrics import set_meter_provider
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.exporter.prometheus import PrometheusMetricReader
+from prometheus_fastapi_instrumentator import Instrumentator
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.util.http.httplib import HttpClientInstrumentor
-from solview.settings import SolviewSettings
-
-settings = SolviewSettings()
+from solview.config import get_settings
 
 logger = logging.getLogger("solview.tracing.core")
-
+settings = get_settings()
 
 def setup_tracer(
     app: FastAPI,
-    service_name: str,
-    service_version: str = "1.0.0",
-    deployment_name: Optional[str] = None,
-    otlp_exporter_protocol: str = "grpc",
-    otlp_exporter_host: str = "localhost",
-    otlp_exporter_port: int = 4317,
-    otlp_exporter_http_encrypted: bool = False,
-    otlp_agent_auth_token: Optional[str] = None,
-    otlp_sqlalchemy_enable_commenter: bool = False,
-    use_console_exporter_on_unittest: bool = True,
-    sampler: Optional[str] = None,
-    sampler_ratio: Optional[float] = None,
+    
 ) -> TracerProvider:
     """
     Setup do OpenTelemetry tracing provider e instrumentação para FastAPI e libs relacionadas.
 
     Todos argumentos podem ser preenchidos por variáveis de ambiente usando a função helper `setup_tracer_from_env`.
     """
-    resource = _get_resource(service_name, service_version, deployment_name)
+    service_name = settings.service_name
+    service_version = settings.version
+    resource = _get_resource(
+        service_name=service_name,
+        service_version=service_version,
+        deployment_name=settings.environment,
+        service_namespace=settings.service_namespace,
+    )
+
+    # TracerProvider para tracing
     tracer_provider = TracerProvider(
-        sampler=_get_sampler(sampler or settings.trace_sampler, sampler_ratio or settings.trace_sampling_ratio),
+        sampler=_get_sampler(settings.trace_sampler, settings.trace_sampling_ratio),
         resource=resource,
     )
     set_tracer_provider(tracer_provider)
     logger.info("TracerProvider configurado | Serviço: %s v%s", service_name, service_version)
 
+    # MeterProvider para métricas Prometheus
+    prometheus_reader = PrometheusMetricReader()
+    metrics_provider = MeterProvider(metric_readers=[prometheus_reader])
+    set_meter_provider(metrics_provider)
+    logger.info("MeterProvider configurado | Serviço: %s v%s", service_name, service_version)
+
     python_env = os.getenv("PYTHON_ENV", "")
-    if use_console_exporter_on_unittest and python_env == "unittest":
+    if getattr(settings, "use_console_exporter_on_unittest", False) and python_env == "unittest":
         # Usa SimpleSpanProcessor para evitar flush assíncrono em stdout fechado no teardown do pytest
         tracer_provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
         logger.info("[solview.tracing] Modo unittest: ConsoleSpanExporter habilitado.")
         return tracer_provider
 
+    os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
+    
     # Instrumentação automática
-    LoggingInstrumentor().instrument(tracer_provider=tracer_provider, set_logging_format=True)
-    HTTPXClientInstrumentor().instrument(tracer_provider=tracer_provider)
-    AsyncPGInstrumentor().instrument(tracer_provider=tracer_provider)
-    SQLAlchemyInstrumentor().instrument(
-        tracer_provider=tracer_provider,
-        enable_commenter=otlp_sqlalchemy_enable_commenter,
-        commenter_options={},
-    )
-    HttpClientInstrumentor().instrument(tracer_provider=tracer_provider)
+    Instrumentator().instrument(app).expose(app)
+    LoggingInstrumentor().instrument(set_logging_format=True)
+    HTTPXClientInstrumentor().instrument()
+    AsyncPGInstrumentor().instrument()
+    SQLAlchemyInstrumentor().instrument(enable_commenter=settings.otlp_sqlalchemy_enable_commenter, commenter_options={})
+    HttpClientInstrumentor().instrument()
+    RequestsInstrumentor().instrument()
     if app:
         # Define URLs de infraestrutura que devem ser excluídas do tracing
         excluded_urls = "/health|/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"
         
         FastAPIInstrumentor().instrument_app(
             app=app, 
-            tracer_provider=tracer_provider,
             excluded_urls=excluded_urls
         )
         logger.info("[solview.tracing] FastAPI instrumentada para tracing (excluindo URLs de infraestrutura: %s)", excluded_urls)
 
     # Exportador OTLP
     exporter = _get_otlp_span_exporter(
-        protocol=otlp_exporter_protocol,
-        host=otlp_exporter_host,
-        port=otlp_exporter_port,
-        http_encrypted=otlp_exporter_http_encrypted,
-        agent_auth_token=otlp_agent_auth_token,
+        protocol=settings.otlp_exporter_protocol,
+        host=settings.otlp_exporter_host,
+        port=settings.otlp_exporter_port,
+        http_encrypted=settings.otlp_exporter_http_encrypted,
+        agent_auth_token=settings.otlp_agent_auth_token,
     )
     tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
-    logger.info("[solview.tracing] Exportador OTLP conectado: %s://%s:%s", otlp_exporter_protocol, otlp_exporter_host, otlp_exporter_port)
+    logger.info("[solview.tracing] Exportador OTLP conectado: %s://%s:%s", settings.otlp_exporter_protocol, settings.otlp_exporter_host, settings.otlp_exporter_port)
     return tracer_provider
 
 
@@ -96,28 +102,21 @@ def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
     """
     Lê variáveis de ambiente padrão OpenTelemetry/Solview e chama `setup_tracer` com argumentos apropriados.
     """
-    return setup_tracer(
-        app=app,
-        service_name=settings.service_name_composed,
-        service_version=settings.version,
-        deployment_name=settings.environment_effective,
-        otlp_exporter_protocol=settings.otlp_exporter_protocol,
-        otlp_exporter_host=settings.otlp_exporter_host,
-        otlp_exporter_port=settings.otlp_exporter_port,
-        otlp_sqlalchemy_enable_commenter=settings.otlp_sqlalchemy_enable_commenter,
-        otlp_exporter_http_encrypted=settings.otlp_exporter_http_encrypted,
-        otlp_agent_auth_token=settings.otlp_agent_auth_token,
-        sampler=settings.trace_sampler,
-        sampler_ratio=settings.trace_sampling_ratio,
-    )
+    settings = get_settings()
+    return setup_tracer(settings=settings, app=app)
 
 
-def _get_resource(service_name: str, service_version: str, deployment_name: Optional[str]) -> Resource:
+def _get_resource(
+    service_name: str,
+    service_version: str,
+    deployment_name: Optional[str],
+    service_namespace: Optional[str],
+) -> Resource:
     attrs = {
         SERVICE_NAME: service_name,
         SERVICE_VERSION: service_version,
-        ResourceAttributes.SERVICE_NAMESPACE: settings.service_namespace,
-        ResourceAttributes.DEPLOYMENT_ENVIRONMENT: deployment_name or settings.environment,
+        ResourceAttributes.SERVICE_NAMESPACE: service_namespace or "solview",
+        ResourceAttributes.DEPLOYMENT_ENVIRONMENT: deployment_name,
     }
     logger.info("[solview.tracing] Resource OTEL: %s", attrs)
     return Resource.create(attrs)
