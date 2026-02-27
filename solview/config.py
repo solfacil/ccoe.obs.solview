@@ -61,8 +61,6 @@ def get_settings() -> SolviewSettings:
     global _settings_instance
 
     if _settings_instance is None:
-        with _settings_lock:
-            if _settings_instance is None:
-                _settings_instance = SolviewSettings()
+        raise ValueError("SolviewSettings not configured")
 
     return _settings_instance

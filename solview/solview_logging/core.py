@@ -74,7 +74,7 @@ def create_masking_filter():
     
     return masking_filter
 
-def setup_logger(settings: SolviewSettings = None, enqueue: Optional[bool] = None) -> None:
+def setup_logger(enqueue: Optional[bool] = None) -> None:
     """
     Configura o logger do SolView usando a configuração fornecida.
     Ajusta automaticamente `enqueue` para evitar erro de event loop em scripts síncronos.
@@ -82,10 +82,8 @@ def setup_logger(settings: SolviewSettings = None, enqueue: Optional[bool] = Non
     Args:
         enqueue: Se deve usar enqueue para async (None = auto-detect)
     """
-    if settings is not None:
-        setup_settings(settings)
 
-    settings = settings or get_settings()
+    settings = get_settings()
 
     logger.remove()
 
