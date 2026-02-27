@@ -36,6 +36,7 @@ from .custom import (
     BUSINESS_OPERATIONS_DURATION_SECONDS,
     BUSINESS_OPERATIONS_MEMORY_BYTES,
 )
+from .db_pool_metrics import setup_db_pool_metrics
 
 __all__ = [
     "SolviewPrometheusMiddleware",
@@ -64,4 +65,5 @@ __all__ = [
     "BUSINESS_OPERATIONS_TOTAL",
     "BUSINESS_OPERATIONS_DURATION_SECONDS",
     "BUSINESS_OPERATIONS_MEMORY_BYTES",
+    "setup_db_pool_metrics",
 ]

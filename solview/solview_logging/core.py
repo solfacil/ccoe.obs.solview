@@ -5,18 +5,11 @@ import os
 from typing import Any, Optional
 from loguru import logger
 from loguru._handler import Message
-from .settings import LoggingSettings
 from .sinks import ecs_sink
 from .masking import DataMasker
+from ..settings import SolviewSettings
+from ..config import get_settings, setup_settings
 
-# Try to import SolviewSettings for compatibility
-try:
-    from ..settings import SolviewSettings
-except (ImportError, ValueError):
-    try:
-        from solview.settings import SolviewSettings
-    except ImportError:
-        SolviewSettings = None
 
 class PropagateToLogging(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
@@ -41,12 +34,9 @@ def trace_context_filter(record):
     return True
 
 
-def create_masking_filter(settings: LoggingSettings):
+def create_masking_filter():
     """
     Create a filter function that masks sensitive data in log messages.
-    
-    Args:
-        settings: LoggingSettings instance (ignore_mask from settings is used as default)
         
     Returns:
         Filter function for loguru
@@ -84,29 +74,16 @@ def create_masking_filter(settings: LoggingSettings):
     
     return masking_filter
 
-def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[bool] = None) -> None:
+def setup_logger(enqueue: Optional[bool] = None) -> None:
     """
     Configura o logger do SolView usando a configuração fornecida.
     Ajusta automaticamente `enqueue` para evitar erro de event loop em scripts síncronos.
     
     Args:
-        settings: LoggingSettings ou SolviewSettings (será convertido automaticamente)
         enqueue: Se deve usar enqueue para async (None = auto-detect)
     """
-    # Converter SolviewSettings para LoggingSettings se necessário
-    if settings is None:
-        settings = LoggingSettings()
-    elif SolviewSettings is not None and type(settings).__name__ == "SolviewSettings":
-        # Converter SolviewSettings para LoggingSettings
-        settings = LoggingSettings(
-            log_level=settings.log_level,
-            environment=settings.environment,
-            service_name=settings.service_name,
-            domain=settings.domain,
-            subdomain=settings.subdomain,
-            version=settings.version,
-            ignore_mask=False,  # Padrão: sempre mascarar
-        )
+
+    settings = get_settings()
 
     logger.remove()
 
@@ -122,7 +99,7 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
         _enqueue = enqueue
 
     # Create masking filter
-    masking_filter = create_masking_filter(settings)
+    masking_filter = create_masking_filter()
     
     # Combine filters: first masking, then trace context
     def combined_filter(record):
@@ -158,7 +135,7 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
             colorize=True,  # Sem cores para melhor legibilidade em testes
         )
     # Ambiente dev: formato legível colorido
-    elif settings.environment == "dev":
+    else:
         logger.add(
             sink=sys.stdout,
             format=(
@@ -175,25 +152,13 @@ def setup_logger(settings: Optional[LoggingSettings] = None, enqueue: Optional[b
             filter=combined_filter,
             colorize=True,
         )
-    else:
-        # Ambiente produção: formato ECS (JSON estruturado)
-        logger.add(
-            sink=_create_async_sink(settings),
-            level=settings.log_level,
-            enqueue=_enqueue,
-            backtrace=True,
-            catch=True,
-            filter=combined_filter
-        )
-    
-
 
     _redirect_std_logging()
     # _exclude_uvicorn_logs()
 
-def _create_async_sink(settings: LoggingSettings):
+def _create_async_sink():
     async def sink_wrapper(message: Message):
-        await ecs_sink(message, settings)
+        await ecs_sink(message)
     return sink_wrapper
 
 def _redirect_std_logging():

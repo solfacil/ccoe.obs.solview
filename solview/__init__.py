@@ -4,22 +4,29 @@ solview - Observabilidade clara como o Sol ☀️
 Biblioteca centralizada de logging, métricas e tracing (Solfácil).
 """
 
-from .settings import SolviewSettings
-from .solview_logging import setup_logger, get_logger
-from .tracing import setup_tracer, get_tracer
+from .settings import SolviewSettings, TracingSettings, MetricsSettings
+from .config import get_settings, setup_settings
+from .solview_logging import get_logger, setup_logger
+from .tracing import get_tracer, setup_tracer
 from .instrumentation import (
     kafka_producer_instrumentation,
     kafka_consumer_instrumentation,
     http_client_instrumentation,
     business_operation_instrumentation,
 )
+from .metrics import setup_db_pool_metrics
 
 __all__ = [
     "SolviewSettings",
-    "setup_logger",
+    "TracingSettings",
+    "MetricsSettings",
+    "setup_settings",
+    "get_settings",
     "get_logger",
-    "setup_tracer",
+    "setup_db_pool_metrics",
     "get_tracer",
+    "setup_tracer",
+    "setup_logger",
     "kafka_producer_instrumentation",
     "kafka_consumer_instrumentation",
     "http_client_instrumentation",

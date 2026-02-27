@@ -10,6 +10,7 @@ from functools import wraps
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
+from solview.config import get_settings
 from solview.metrics.custom import (
     BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL,
     BUSINESS_OPERATIONS_TOTAL,
@@ -18,11 +19,8 @@ from solview.metrics.custom import (
 )
 from solview.instrumentation.utils import MemoryProfiler
 from solview.solview_logging import get_logger
-from solview.settings import SolviewSettings
 
 logger = get_logger(__name__)
-settings = SolviewSettings()
-APP_NAME = settings.service_name
 
 
 def business_operation_instrumentation(operation: str):
@@ -31,13 +29,6 @@ def business_operation_instrumentation(operation: str):
     """
 
     def decorator(func: Callable) -> Callable:
-
-        def should_profile_memory() -> bool:
-            return (
-                settings.enable_memory_profiling
-                and random.random() < settings.sampling_memory_profiling
-            )
-
         def generate_delta_metrics(
             profile_memory,
             memory_profiler,
@@ -89,7 +80,12 @@ def business_operation_instrumentation(operation: str):
             success = False
             result = None
 
-            profile_memory = should_profile_memory()
+            settings = get_settings()
+            app_name = settings.service_name
+            profile_memory = (
+                settings.enable_memory_profiling
+                and random.random() < settings.sampling_memory_profiling
+            )
             memory_profiler = MemoryProfiler(enabled=profile_memory)
 
             with tracer.start_as_current_span(
@@ -121,13 +117,13 @@ def business_operation_instrumentation(operation: str):
 
                     BUSINESS_OPERATIONS_TOTAL.labels(
                         operation=operation,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                         status=status,
                     ).inc()
 
                     BUSINESS_OPERATIONS_DURATION_SECONDS.labels(
                         operation=operation,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                         status=status,
                     ).observe(duration)
 
@@ -138,7 +134,7 @@ def business_operation_instrumentation(operation: str):
                         span=span,
                         status=status,
                         operation=operation,
-                        app_name=APP_NAME,
+                        app_name=app_name,
                     )
         return wrapper
 

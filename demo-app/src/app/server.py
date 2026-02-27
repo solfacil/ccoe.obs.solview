@@ -10,10 +10,12 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from solview import SolviewSettings, setup_logger, setup_tracer, get_logger
-from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
+from solview import setup_solview, get_logger, SolviewSettings
+from solview.metrics import prometheus_metrics_response
 
 logger = get_logger(__name__)
+
+settings = SolviewSettings(service_name="solview-demo-app")
 
 
 @asynccontextmanager
@@ -24,7 +26,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Args:
         app: Instância do FastAPI
     """
-    settings = SolviewSettings(service_name="solview-demo-app")
     
     logger.info(
         "🚀 Solview Demo Application started",
@@ -50,7 +51,6 @@ def create_application() -> FastAPI:
     Returns:
         FastAPI: Aplicação configurada com Solview
     """
-    settings = SolviewSettings(service_name="solview-demo-app")
     
     # Configurar Solview Settings
     # solview_settings = SolviewSettings(
@@ -63,19 +63,17 @@ def create_application() -> FastAPI:
     #     otlp_exporter_protocol="grpc"
     # )
     
-    # 1. Setup Logger Estruturado do Solview
-    setup_logger(settings)
     
     app = FastAPI(title="Solview Demo App")
     
     # 2. Middleware de Métricas Prometheus do Solview
-    app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
+    # app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
     
     # 3. Endpoint de Métricas do Solview
     app.add_route("/metrics", prometheus_metrics_response)
     
     # 4. Setup Tracing OpenTelemetry do Solview
-    setup_tracer(settings, app)
+    setup_solview(settings, app=app)
     
     # 5. Configurar CORS
     cors_origins = settings.cors_origins_list

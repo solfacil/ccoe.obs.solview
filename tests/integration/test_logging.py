@@ -7,12 +7,13 @@ import orjson
 
 def test_integration_settings_logger_sink(monkeypatch):
     # 1. Configura env para simular ambiente prd e valores custom
-    monkeypatch.setenv("SOLVIEW_LOG_LEVEL", "DEBUG")
-    monkeypatch.setenv("SOLVIEW_ENVIRONMENT", "prd")
-    monkeypatch.setenv("SOLVIEW_SERVICE_NAME", "super-app")
-    monkeypatch.setenv("SOLVIEW_DOMAIN", "dom")
-    monkeypatch.setenv("SOLVIEW_SUBDOMAIN", "int")
-    monkeypatch.setenv("SOLVIEW_VERSION", "1.2.99")
+    # SolviewSettings lê LOG_LEVEL, ENVIRONMENT, SERVICE_NAME, etc. (não SOLVIEW_*)
+    monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("ENVIRONMENT", "prd")
+    monkeypatch.setenv("SERVICE_NAME", "super-app")
+    monkeypatch.setenv("DOMAIN", "dom")
+    monkeypatch.setenv("SUBDOMAIN", "int")
+    monkeypatch.setenv("VERSION", "1.2.99")
 
     # Sempre recarregue o módulo de settings após monkeypatch!
     import solview.settings
@@ -28,7 +29,11 @@ def test_integration_settings_logger_sink(monkeypatch):
     assert s.subdomain == "int"
     assert s.version == "1.2.99"
 
-    # 2. Gera instance de LoggingSettings (simulando produção)
+    # Registrar settings para setup_logger (usa get_settings() internamente)
+    from solview.config import setup_settings
+    setup_settings(s)
+
+    # 2. Gera instance de LoggingSettings (para o sink custom do teste; mesmo conteúdo que s)
     from solview.solview_logging.settings import LoggingSettings
     from solview.solview_logging.core import setup_logger
     log_settings = LoggingSettings(
@@ -110,8 +115,8 @@ def test_integration_settings_logger_sink(monkeypatch):
 
         return sync_sink
 
-    # Inicializa o logger do Solview e injeta o sink síncrono do teste
-    setup_logger(log_settings)
+    # Inicializa o logger do Solview (usa get_settings() = s) e injeta o sink síncrono do teste
+    setup_logger()
     from loguru import logger as _logger  # acesso direto para adicionar sink custom só no teste
     _logger.remove()
     _logger.add(create_sync_sink(log_settings, mem_sink), level=log_settings.log_level, enqueue=False)

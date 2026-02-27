@@ -35,13 +35,13 @@ open http://localhost:3100  # Loki
 
 ```bash
 # .env para desenvolvimento
-SOLVIEW_SERVICE_NAME=minha-api-dev
-SOLVIEW_ENVIRONMENT=dev
-SOLVIEW_LOG_LEVEL=DEBUG
-SOLVIEW_OTLP_ENDPOINT=http://localhost:4317
-SOLVIEW_ENABLE_DATA_MASKING=false
-SOLVIEW_TRACE_SAMPLING_RATE=1.0
-SOLVIEW_METRICS_ENABLED=true
+SERVICE_NAME=minha-api-dev
+ENVIRONMENT=dev
+LOG_LEVEL=DEBUG
+OTLP_ENDPOINT=http://localhost:4317
+ENABLE_DATA_MASKING=false
+TRACE_SAMPLING_RATE=1.0
+METRICS_ENABLED=true
 ```
 
 ### **3. Aplicação de Exemplo**
@@ -50,7 +50,7 @@ SOLVIEW_METRICS_ENABLED=true
 # app/main.py
 from fastapi import FastAPI
 from solview import SolviewSettings, setup_logger, setup_tracer
-from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
+from solview.metrics import prometheus_metrics_response
 
 # Configuração para desenvolvimento
 settings = SolviewSettings()
@@ -60,7 +60,6 @@ app = FastAPI(title="API de Desenvolvimento")
 # Setup Solview
 setup_logger(settings)
 setup_tracer(settings, app)
-app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
 app.add_route("/metrics", prometheus_metrics_response)
 
 @app.get("/")
@@ -102,13 +101,13 @@ CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "
 
 ```bash
 # .env.staging (stg será normalizado internamente para dev)
-SOLVIEW_SERVICE_NAME=minha-api-staging
-SOLVIEW_ENVIRONMENT=stg
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_OTLP_ENDPOINT=http://otel-collector.staging.local:4317
-SOLVIEW_ENABLE_DATA_MASKING=true
-SOLVIEW_TRACE_SAMPLING_rate=0.5
-SOLVIEW_METRICS_ENABLED=true
+SERVICE_NAME=minha-api-staging
+ENVIRONMENT=stg
+LOG_LEVEL=INFO
+OTLP_ENDPOINT=http://otel-collector.staging.local:4317
+ENABLE_DATA_MASKING=true
+TRACE_SAMPLING_rate=0.5
+METRICS_ENABLED=true
 ```
 
 ### **2. Docker Compose para Staging**
@@ -129,9 +128,9 @@ services:
       context: .
       dockerfile: Dockerfile.staging
     environment:
-      - SOLVIEW_SERVICE_NAME=minha-api-staging
-      - SOLVIEW_ENVIRONMENT=staging
-      - SOLVIEW_OTLP_ENDPOINT=http://otel-collector:4317
+      - SERVICE_NAME=minha-api-staging
+      - ENVIRONMENT=staging
+      - OTLP_ENDPOINT=http://otel-collector:4317
     deploy:
       replicas: 2
       resources:
@@ -231,13 +230,13 @@ jobs:
 
 ```bash
 # .env.production (production será normalizado para prd)
-SOLVIEW_SERVICE_NAME=minha-api
-SOLVIEW_ENVIRONMENT=production
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_OTLP_ENDPOINT=https://otel-collector.prod.local:4317
-SOLVIEW_ENABLE_DATA_MASKING=true
-SOLVIEW_TRACE_SAMPLING_RATE=0.05
-SOLVIEW_METRICS_ENABLED=true
+SERVICE_NAME=minha-api
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+OTLP_ENDPOINT=https://otel-collector.prod.local:4317
+ENABLE_DATA_MASKING=true
+TRACE_SAMPLING_RATE=0.05
+METRICS_ENABLED=true
 
 # Segurança
 SOLVIEW_ENABLE_SECURITY_MIDDLEWARE=true
