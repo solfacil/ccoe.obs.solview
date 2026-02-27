@@ -5,7 +5,7 @@ Biblioteca centralizada de logging, métricas e tracing (Solfácil).
 """
 
 from .settings import SolviewSettings, TracingSettings, MetricsSettings
-from .config import setup_settings
+from .config import get_settings, setup_settings
 from .solview_logging import get_logger, setup_logger
 from .tracing import get_tracer, setup_tracer
 from .instrumentation import (

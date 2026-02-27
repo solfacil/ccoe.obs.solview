@@ -4,8 +4,28 @@ from datetime import timedelta
 from typing import Any, TextIO
 from loguru._handler import Message
 from .masking import DataMasker
-from solview.config import get_settings
-settings = get_settings()
+
+
+def _get_service_labels() -> dict:
+    """Obtém labels de serviço (lazy) para não exigir setup_settings() no import."""
+    try:
+        from solview.config import get_settings
+        s = get_settings()
+        return {
+            "environment": s.environment,
+            "domain": s.domain,
+            "name": s.service_name,
+            "subdomain": s.subdomain,
+            "version": s.version,
+        }
+    except ValueError:
+        return {
+            "environment": "dev",
+            "domain": "",
+            "name": "solview",
+            "subdomain": "",
+            "version": "0.0.0",
+        }
 
 def _mask_dict_values(data: dict, masker: DataMasker) -> dict:
     """
@@ -90,13 +110,7 @@ async def ecs_sink(
                 "name": record["thread"].name,
             },
         },
-        "service": {
-            "environment": settings.environment,
-            "domain": settings.domain,
-            "name": settings.service_name,
-            "subdomain": settings.subdomain,
-            "version": settings.version,
-        },
+        "service": _get_service_labels(),
     }
 
     exception = record.get("exception")

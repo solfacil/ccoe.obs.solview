@@ -40,12 +40,7 @@ def setup_settings(
     """
     global _settings_instance
 
-    if settings is not None:
-        raise ValueError(
-            "Use either 'settings'"
-        )
-
-    resolved = settings or SolviewSettings()
+    resolved = settings if settings is not None else SolviewSettings()
     with _settings_lock:
         _settings_instance = resolved
 

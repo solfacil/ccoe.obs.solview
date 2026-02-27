@@ -14,6 +14,7 @@ from solview import get_logger
 
 # Solview imports
 from solview.settings import SolviewSettings
+from solview.config import setup_settings
 from solview.solview_logging import setup_logger
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
 from solview.tracing import setup_tracer
@@ -71,7 +72,8 @@ def create_application() -> FastAPI:
         otlp_exporter_protocol="grpc"
     )
     
-    # 1. Setup Solview Structured Logger
+    # 1. Registrar settings no Solview (usado por setup_tracer e instrumentação)
+    setup_settings(solview_settings)
     setup_logger(solview_settings)
     
     # 2. Create FastAPI app
@@ -92,15 +94,8 @@ def create_application() -> FastAPI:
     # 4. Add Solview Metrics Endpoint
     app.add_route("/metrics", prometheus_metrics_response)
     
-    # 5. Setup OpenTelemetry Tracing
-    setup_tracer(
-        app=app,
-        service_name=settings.service_name,
-        service_version=settings.version,
-        otlp_exporter_host=solview_settings.otlp_exporter_host,
-        otlp_exporter_port=solview_settings.otlp_exporter_port,
-        otlp_exporter_protocol=solview_settings.otlp_exporter_protocol
-    )
+    # 5. Setup OpenTelemetry Tracing (usa get_settings() = solview_settings)
+    setup_tracer(app)
     
     # 6. Configure CORS
     cors_origins = settings.cors_origins_list

@@ -1,6 +1,7 @@
 # main.py
 from fastapi import FastAPI
-from solview import SolviewSettings, setup_logger, setup_tracer, get_logger
+from fastapi import HTTPException
+from solview import SolviewSettings, setup_logger, setup_tracer, setup_settings, get_logger
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
 import random
 import asyncio
@@ -13,6 +14,7 @@ settings = SolviewSettings(
     subdomain="demo",
     version="1.0.0",
 )
+setup_settings(settings)
 setup_logger(settings)
 logger = get_logger(__name__)
 
@@ -22,8 +24,8 @@ app = FastAPI()
 app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
 app.add_route("/metrics", prometheus_metrics_response)
 
-# Tracing
-setup_tracer(settings, app)
+# Tracing (usa get_settings() internamente)
+setup_tracer(app)
 
 @app.get("/")
 async def root():

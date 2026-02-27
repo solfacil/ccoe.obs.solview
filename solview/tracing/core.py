@@ -68,7 +68,7 @@ def setup_tracer(app: FastAPI = None) -> TracerProvider:
     os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
 
     # Instrumentação automática
-    Instrumentator().instrument(app).expose(app)
+    Instrumentator().instrument(app=app).expose(app, endpoint="/metrics")
     LoggingInstrumentor().instrument(set_logging_format=True)
     HTTPXClientInstrumentor().instrument()
     AsyncPGInstrumentor().instrument()
