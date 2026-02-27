@@ -21,18 +21,22 @@ from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from prometheus_fastapi_instrumentator import Instrumentator
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.util.http.httplib import HttpClientInstrumentor
-from solview.config import get_settings
+from ..config import get_settings, setup_settings
+from ..settings import SolviewSettings
 
 logger = logging.getLogger("solview.tracing.core")
 
 
-def setup_tracer(app: FastAPI) -> TracerProvider:
+def setup_tracer(settings: SolviewSettings = None, app: FastAPI = None) -> TracerProvider:
     """
     Setup do OpenTelemetry tracing provider e instrumentação para FastAPI e libs relacionadas.
 
     Usa a configuração atual de get_settings(). Para configurar por env antes, use configure_solview() ou setup_tracer_from_env(app).
     """
-    settings = get_settings()
+    if settings is not None:
+        setup_settings(settings)
+
+    settings = settings or get_settings()
     service_name = settings.service_name
     service_version = settings.version
     resource = _get_resource(

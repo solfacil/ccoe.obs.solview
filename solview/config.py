@@ -14,13 +14,8 @@ _settings_lock = RLock()
 _settings_instance: SolviewSettings | None = None
 
 
-def setup_solview(
+def setup_settings(
     settings: SolviewSettings | None = None,
-    *,
-    app: "FastAPI | None" = None,
-    setup_logger: bool = True,
-    setup_tracer: bool = True,
-    **overrides,
 ) -> SolviewSettings:
     """
     Configure and store a single SolviewSettings instance for the process.
@@ -45,22 +40,14 @@ def setup_solview(
     """
     global _settings_instance
 
-    if settings is not None and overrides:
+    if settings is not None:
         raise ValueError(
-            "Use either 'settings' or keyword overrides, not both."
+            "Use either 'settings'"
         )
 
-    resolved = settings or SolviewSettings(**overrides)
+    resolved = settings or SolviewSettings()
     with _settings_lock:
         _settings_instance = resolved
-
-    if setup_logger:
-        from solview.solview_logging import setup_logger as _setup_logger
-        _setup_logger()
-
-    if setup_tracer:
-        from solview.tracing.core import setup_tracer as _setup_tracer
-        _setup_tracer(app)
 
     return resolved
 
