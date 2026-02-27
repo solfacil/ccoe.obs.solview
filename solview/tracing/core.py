@@ -68,7 +68,7 @@ def setup_tracer(app: FastAPI = None) -> TracerProvider:
     os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
 
     # Instrumentação automática
-    Instrumentator().instrument(app=app).expose(app, endpoint="/metrics")
+    Instrumentator().instrument(app=app).expose(app)
     LoggingInstrumentor().instrument(set_logging_format=True)
     HTTPXClientInstrumentor().instrument()
     AsyncPGInstrumentor().instrument()
@@ -77,7 +77,7 @@ def setup_tracer(app: FastAPI = None) -> TracerProvider:
     RequestsInstrumentor().instrument()
     if app:
         # Define URLs de infraestrutura que devem ser excluídas do tracing
-        excluded_urls = "/health|/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"
+        excluded_urls = "/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"
         
         FastAPIInstrumentor().instrument_app(
             app=app, 
