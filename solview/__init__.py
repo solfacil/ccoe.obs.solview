@@ -5,7 +5,7 @@ Biblioteca centralizada de logging, métricas e tracing (Solfácil).
 """
 
 from .settings import SolviewSettings
-from .config import configure_solview, get_settings
+from .config import setup_solview, get_settings
 from .solview_logging import setup_logger, get_logger
 from .tracing import setup_tracer, get_tracer
 from .instrumentation import (
@@ -17,11 +17,9 @@ from .instrumentation import (
 
 __all__ = [
     "SolviewSettings",
-    "configure_solview",
+    "setup_solview",
     "get_settings",
-    "setup_logger",
     "get_logger",
-    "setup_tracer",
     "get_tracer",
     "kafka_producer_instrumentation",
     "kafka_consumer_instrumentation",

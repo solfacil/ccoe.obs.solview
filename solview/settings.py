@@ -14,24 +14,6 @@ def _try_load_dotenv():
 _try_load_dotenv()
 
 
-class LoggingSettings(BaseModel):
-    """
-    Configuração para Logging SolView.
-
-    Exemplo de uso:
-        LoggingSettings(
-            log_level="INFO", 
-            environment="production",
-            service_name="minha-api",
-            domain="solarview",
-            subdomain="observabilidade",
-            version="1.0.0",
-            ignore_mask=False
-        )
-    """
-    ignore_mask: bool = False
-
-
 class TracingSettings(BaseModel):
     """
     Configuração para Tracing SolView.
@@ -57,25 +39,25 @@ class SolviewSettings(BaseModel):
     """
     Configurações globais do Solview.
     """
-    log_level: str = os.getenv("SOLVIEW_LOG_LEVEL", "INFO")
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
     # Raw environment value from .env; effective mapping below
-    environment: str = os.getenv("SOLVIEW_ENVIRONMENT", "dev")
-    service_name: str = os.getenv("SOLVIEW_SERVICE_NAME", "app")
-    domain: str = os.getenv("SOLVIEW_DOMAIN", "")
-    subdomain: str = os.getenv("SOLVIEW_SUBDOMAIN", "")
-    version: str = os.getenv("SOLVIEW_VERSION", "1.0.1")
+    environment: str = os.getenv("ENVIRONMENT", "dev")
+    service_name: str = os.getenv("SERVICE_NAME", "app")
+    domain: str = os.getenv("DOMAIN", "")
+    subdomain: str = os.getenv("SUBDOMAIN", "")
+    version: str = os.getenv("VERSION", "1.0.1")
     # Namespace semântico OTEL (ex.: time/produto ou domínio)
-    service_namespace: str = os.getenv("OTEL_SERVICE_NAMESPACE", os.getenv("SOLVIEW_SERVICE_NAMESPACE", "solview"))
+    service_namespace: str = os.getenv("OTEL_SERVICE_NAMESPACE", os.getenv("SERVICE_NAMESPACE", "solview"))
     
     # Settings
-    logging_settings: LoggingSettings = LoggingSettings()
+    ignore_mask: bool = os.getenv("IGNORE_MASK", False)
     tracing_settings: TracingSettings = TracingSettings()
     metrics_settings: MetricsSettings = MetricsSettings()
     
     # Memory profiling configuration
-    enable_memory_profiling: bool = os.getenv("SOLVIEW_ENABLE_MEMORY_PROFILING", "false").lower() == "true" # enabled impacting the performance of the application
+    enable_memory_profiling: bool = os.getenv("ENABLE_MEMORY_PROFILING", "false").lower() == "true" # enabled impacting the performance of the application
     #recomendation: local=1.0, staging=0.1, production=0.01, production_incident=0.05
-    sampling_memory_profiling: float = float(os.getenv("SOLVIEW_SAMPLING_MEMORY_PROFILING", "1.0")) 
+    sampling_memory_profiling: float = float(os.getenv("SAMPLING_MEMORY_PROFILING", "1.0")) 
 
     def _normalize_environment(self) -> str:
         env = (self.environment or "").strip().lower()
@@ -100,7 +82,7 @@ class SolviewSettings(BaseModel):
 
     @property
     def log_level(self) -> str:
-        return self.logging_settings.log_level
+        return self.log_level
     
     @property
     def otlp_endpoint_full(self) -> str:

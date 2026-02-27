@@ -5,7 +5,6 @@ import os
 from typing import Any, Optional
 from loguru import logger
 from loguru._handler import Message
-from .settings import LoggingSettings
 from .sinks import ecs_sink
 from .masking import DataMasker
 
@@ -116,7 +115,7 @@ def setup_logger(enqueue: Optional[bool] = None) -> None:
     logger.level("CRITICAL", color="<red><bold>")
 
     if settings.environment == "unittest":
-        logger.add(PropagateToLogging(), level=settings.logging_settings.log_level)
+        logger.add(PropagateToLogging(), level=settings.log_level)
         logger.add(
             sink=sys.stderr,  # Usa stderr para aparecer como "Captured log call" no pytest
             format=(
@@ -155,9 +154,9 @@ def setup_logger(enqueue: Optional[bool] = None) -> None:
     _redirect_std_logging()
     # _exclude_uvicorn_logs()
 
-def _create_async_sink(settings: LoggingSettings):
+def _create_async_sink():
     async def sink_wrapper(message: Message):
-        await ecs_sink(message, settings)
+        await ecs_sink(message)
     return sink_wrapper
 
 def _redirect_std_logging():

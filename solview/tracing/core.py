@@ -24,17 +24,15 @@ from opentelemetry.util.http.httplib import HttpClientInstrumentor
 from solview.config import get_settings
 
 logger = logging.getLogger("solview.tracing.core")
-settings = get_settings()
 
-def setup_tracer(
-    app: FastAPI,
-    
-) -> TracerProvider:
+
+def setup_tracer(app: FastAPI) -> TracerProvider:
     """
     Setup do OpenTelemetry tracing provider e instrumentação para FastAPI e libs relacionadas.
 
-    Todos argumentos podem ser preenchidos por variáveis de ambiente usando a função helper `setup_tracer_from_env`.
+    Usa a configuração atual de get_settings(). Para configurar por env antes, use configure_solview() ou setup_tracer_from_env(app).
     """
+    settings = get_settings()
     service_name = settings.service_name
     service_version = settings.version
     resource = _get_resource(
@@ -66,7 +64,7 @@ def setup_tracer(
         return tracer_provider
 
     os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
-    
+
     # Instrumentação automática
     Instrumentator().instrument(app).expose(app)
     LoggingInstrumentor().instrument(set_logging_format=True)
@@ -100,10 +98,9 @@ def setup_tracer(
 
 def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
     """
-    Lê variáveis de ambiente padrão OpenTelemetry/Solview e chama `setup_tracer` com argumentos apropriados.
+    Garante que get_settings() está preenchido por env e chama setup_tracer(app).
     """
-    settings = get_settings()
-    return setup_tracer(settings=settings, app=app)
+    return setup_tracer(app)
 
 
 def _get_resource(
