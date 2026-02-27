@@ -19,7 +19,7 @@ class TracingSettings(BaseModel):
     Configuração para Tracing SolView.
     """
     otlp_exporter_protocol: str = "grpc"
-    otlp_exporter_host: str = "localhost"
+    otlp_exporter_host: str = os.getenv("OTLP_EXPORTER_HOST", "localhost") or os.getenv("TEMPO_HOST", "localhost")
     otlp_exporter_port: int = 4317
     otlp_exporter_http_encrypted: bool = False
     otlp_agent_auth_token: str = ""

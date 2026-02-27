@@ -6,7 +6,6 @@ Fornece configuração unificada e helpers para log estruturado e integração c
 """
 from typing import Any, Optional
 from .core import setup_logger
-from .settings import LoggingSettings
 from .colors import LogColors, get_color_for_level
 from .masking import DataMasker
 
