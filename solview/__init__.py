@@ -4,10 +4,10 @@ solview - Observabilidade clara como o Sol ☀️
 Biblioteca centralizada de logging, métricas e tracing (Solfácil).
 """
 
-from .settings import SolviewSettings
-from .config import setup_solview, get_settings
-from .solview_logging import setup_logger, get_logger
-from .tracing import setup_tracer, get_tracer
+from .settings import SolviewSettings, TracingSettings, MetricsSettings
+from .config import setup_solview
+from .solview_logging import get_logger
+from .tracing import get_tracer
 from .instrumentation import (
     kafka_producer_instrumentation,
     kafka_consumer_instrumentation,
@@ -17,6 +17,8 @@ from .instrumentation import (
 
 __all__ = [
     "SolviewSettings",
+    "TracingSettings",
+    "MetricsSettings",
     "setup_solview",
     "get_settings",
     "get_logger",
