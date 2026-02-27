@@ -14,6 +14,7 @@ from .instrumentation import (
     http_client_instrumentation,
     business_operation_instrumentation,
 )
+from .metrics import setup_db_pool_metrics
 
 __all__ = [
     "SolviewSettings",
@@ -22,6 +23,7 @@ __all__ = [
     "setup_settings",
     "get_settings",
     "get_logger",
+    "setup_db_pool_metrics",
     "get_tracer",
     "setup_tracer",
     "setup_logger",
