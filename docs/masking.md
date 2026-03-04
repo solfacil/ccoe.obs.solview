@@ -20,17 +20,17 @@ Este módulo fornece um engine avançado e extensível para mascarar informaçõ
 ### 0. Habilitar por configuração (opcional)
 
 ```env
-# .env
-SOLVIEW_ENABLE_DATA_MASKING=true
+# .env — desabilita masking (útil para debug local)
+IGNORE_MASK=true
 ```
 
 ```python
 from solview import SolviewSettings
 
-settings = SolviewSettings(enable_data_masking=True)
+settings = SolviewSettings(ignore_mask=False)  # masking ativo (padrão)
 ```
 
-> Observação: o masking não é aplicado globalmente e automaticamente — você deve aplicá‑lo onde houver dados sensíveis (ex.: logs). O flag acima serve para feature‑flagging em seu app.
+> Observação: o masking é ativo por padrão. Use `ignore_mask=True` (ou `IGNORE_MASK=true`) para desabilitá-lo em ambientes de desenvolvimento. Também é possível desabilitar por chamada de log individual: `logger.info("texto", ignore_mask=True)`.
 
 ### 1. Mascarando uma String
 
@@ -166,7 +166,7 @@ print(result)  # {"LGPD": False}
 ## 📝 Resumo
 
 - Use `mask_sensitive_data()`/`mask_dict()` de `solview.security`.
-- Ative por flag `SOLVIEW_ENABLE_DATA_MASKING` para feature‑flagging.
+- Use `IGNORE_MASK=true` para desabilitar masking em desenvolvimento.
 - Aplique masking antes de enviar dados sensíveis para logs.
 - Customize regras via `EnhancedDataMasking` quando necessário.
 

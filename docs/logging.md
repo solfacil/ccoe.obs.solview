@@ -26,12 +26,12 @@ logger.info("API inicializada com sucesso", extra={"request_id": "abc-123"})
 Configure variáveis de ambiente ou um arquivo `.env`:
 
 ```env
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_ENVIRONMENT=prd
-SOLVIEW_SERVICE_NAME=api-pedidos
-SOLVIEW_DOMAIN=vendas
-SOLVIEW_SUBDOMAIN=checkout
-SOLVIEW_VERSION=2.0.0
+LOG_LEVEL=INFO
+ENVIRONMENT=prd
+SERVICE_NAME=api-pedidos
+DOMAIN=vendas
+SUBDOMAIN=checkout
+VERSION=2.0.0
 ```
 
 ---

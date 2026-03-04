@@ -86,12 +86,11 @@ async def get_user(user_id: int):
 
 ```bash
 # .env
-SOLVIEW_SERVICE_NAME=minha-api
-SOLVIEW_SERVICE_VERSION=1.0.0
-SOLVIEW_ENVIRONMENT=production
-SOLVIEW_OTLP_ENDPOINT=http://localhost:4317
-SOLVIEW_METRICS_ENABLED=true
-SOLVIEW_LOG_LEVEL=INFO
+SERVICE_NAME=minha-api
+VERSION=1.0.0
+ENVIRONMENT=production
+OTLP_EXPORTER_HOST=localhost
+LOG_LEVEL=INFO
 ```
 
 ### 4. **Executar**
@@ -515,50 +514,54 @@ class UserRepository:
 
 ```python
 # config/development.py
-SOLVIEW_SETTINGS = {
-    "service_name": "minha-api-dev",
-    "environment": "development",
-    "log_level": "DEBUG",
-    "otlp_endpoint": "http://localhost:4317",
-    "metrics_enabled": True,
-    "enable_data_masking": False,  # Masking desabilitado em dev
-    "export_traces": True,
-    "export_metrics": True,
-}
+from solview import SolviewSettings
+from solview.settings import TracingSettings
+
+settings = SolviewSettings(
+    service_name="minha-api-dev",
+    environment="development",
+    log_level="DEBUG",
+    otlp_exporter_host="localhost",
+    ignore_mask=True,  # Masking desabilitado em dev
+    enable_memory_profiling=True,
+    sampling_memory_profiling=1.0,
+)
 ```
 
 ### 🧪 **Staging**
 
 ```python
 # config/staging.py
-SOLVIEW_SETTINGS = {
-    "service_name": "minha-api-staging",
-    "environment": "staging",
-    "log_level": "INFO",
-    "otlp_endpoint": "http://otel-collector.staging:4317",
-    "metrics_enabled": True,
-    "enable_data_masking": True,  # Masking habilitado
-    "export_traces": True,
-    "export_metrics": True,
-    "trace_sampling_rate": 0.1,  # 10% de sampling
-}
+from solview import SolviewSettings
+from solview.settings import TracingSettings
+
+settings = SolviewSettings(
+    service_name="minha-api-staging",
+    environment="staging",
+    log_level="INFO",
+    otlp_exporter_host="otel-collector.staging",
+    trace_sampling_ratio=0.1,  # 10% de sampling
+    enable_memory_profiling=True,
+    sampling_memory_profiling=0.1,
+)
 ```
 
 ### 🚀 **Produção**
 
 ```python
 # config/production.py
-SOLVIEW_SETTINGS = {
-    "service_name": "minha-api",
-    "environment": "production",
-    "log_level": "INFO",
-    "otlp_endpoint": "http://otel-collector.prod:4317",
-    "metrics_enabled": True,
-    "enable_data_masking": True,
-    "export_traces": True,
-    "export_metrics": True,
-    "trace_sampling_rate": 0.05 # 5% de sampling para performance
-}
+from solview import SolviewSettings
+from solview.settings import TracingSettings
+
+settings = SolviewSettings(
+    service_name="minha-api",
+    environment="production",
+    log_level="INFO",
+    otlp_exporter_host="otel-collector.prod",
+    trace_sampling_ratio=0.05,  # 5% de sampling para performance
+    enable_memory_profiling=True,
+    sampling_memory_profiling=0.01,
+)
 ```
 
 ---

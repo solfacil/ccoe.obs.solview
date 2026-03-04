@@ -719,25 +719,23 @@ class SolviewSettings(BaseSettings):
 
 ```bash
 # Serviço
-SOLVIEW_SERVICE_NAME=minha-api
-SOLVIEW_SERVICE_VERSION=1.0.0
-SOLVIEW_ENVIRONMENT=production
+SERVICE_NAME=minha-api
+VERSION=1.0.0
+ENVIRONMENT=production
 
 # OpenTelemetry
-SOLVIEW_OTLP_ENDPOINT=http://otel-collector:4317
-SOLVIEW_TRACE_SAMPLING_RATE=0.1
+OTLP_EXPORTER_HOST=otel-collector
+OTEL_SERVICE_NAMESPACE=minha-api
 
 # Logs
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_LOG_FORMAT=json
+LOG_LEVEL=INFO
 
-# Métricas
-SOLVIEW_METRICS_ENABLED=true
-SOLVIEW_METRICS_PORT=8000
-
-# Segurança
-SOLVIEW_ENABLE_DATA_MASKING=true
+# Memory profiling
+ENABLE_MEMORY_PROFILING=false
+SAMPLING_MEMORY_PROFILING=0.1
 ```
+
+> **Nota:** Configurações como `metrics_enabled`, `trace_sampling_ratio` e `otlp_exporter_port` são definidas programaticamente via `SolviewSettings`, `MetricsSettings` e `TracingSettings`.
 
 ### **Docker Compose Stack**
 
@@ -750,8 +748,8 @@ services:
   app:
     build: .
     environment:
-      - SOLVIEW_SERVICE_NAME=minha-api
-      - SOLVIEW_OTLP_ENDPOINT=http://otel-collector:4317
+      - SERVICE_NAME=minha-api
+      - OTLP_EXPORTER_HOST=otel-collector
     depends_on:
       - otel-collector
   

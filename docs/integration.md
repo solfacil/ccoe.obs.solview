@@ -116,18 +116,18 @@ if __name__ == "__main__":
 Configure tudo via `.env` ou variáveis de ambiente:
 
 ```env
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_ENVIRONMENT=production
-SOLVIEW_SERVICE_NAME=api-vendas
-SOLVIEW_DOMAIN=vendas
-SOLVIEW_SUBDOMAIN=checkout
-SOLVIEW_VERSION=1.2.0
+LOG_LEVEL=INFO
+ENVIRONMENT=production
+SERVICE_NAME=api-vendas
+DOMAIN=vendas
+SUBDOMAIN=checkout
+VERSION=1.2.0
 
-OTEL_SERVICE_NAME=api-vendas
-OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector
-OTEL_EXPORTER_OTLP_ENDPOINT_PORT=4317
+OTLP_EXPORTER_HOST=otel-collector
+OTEL_SERVICE_NAMESPACE=api-vendas
 ```
+
+> **Nota:** Configurações como `otlp_exporter_protocol` e `otlp_exporter_port` são definidas programaticamente via `TracingSettings`.
 
 ---
 

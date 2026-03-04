@@ -140,27 +140,29 @@ async def root():
 
 ### 🏠 **Desenvolvimento**
 ```bash
-SOLVIEW_ENVIRONMENT=dev
-SOLVIEW_LOG_LEVEL=DEBUG
-SOLVIEW_TRACE_SAMPLING_RATE=1.0
-SOLVIEW_ENABLE_DATA_MASKING=false
+ENVIRONMENT=dev
+LOG_LEVEL=DEBUG
+ENABLE_MEMORY_PROFILING=true
+SAMPLING_MEMORY_PROFILING=1.0
 ```
 
 ### 🧪 **Staging**
 ```bash
-SOLVIEW_ENVIRONMENT=dev
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_TRACE_SAMPLING_RATE=0.5
-SOLVIEW_ENABLE_DATA_MASKING=true
+ENVIRONMENT=stg
+LOG_LEVEL=INFO
+ENABLE_MEMORY_PROFILING=true
+SAMPLING_MEMORY_PROFILING=0.1
 ```
 
 ### 🚀 **Produção**
 ```bash
-SOLVIEW_ENVIRONMENT=prd
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_TRACE_SAMPLING_RATE=0.05
-SOLVIEW_ENABLE_DATA_MASKING=true
+ENVIRONMENT=prd
+LOG_LEVEL=INFO
+ENABLE_MEMORY_PROFILING=true
+SAMPLING_MEMORY_PROFILING=0.01
 ```
+
+> **Nota:** `trace_sampling_ratio` é configurado programaticamente via `TracingSettings(trace_sampling_ratio=0.05)`.
 
 ---
 
@@ -206,7 +208,7 @@ docker logs solview-prometheus
 curl http://localhost:4317/v1/traces
 
 # Verificar variáveis de ambiente
-env | grep SOLVIEW_OTLP
+env | grep OTLP_EXPORTER
 ```
 
 **P: Correlação não funciona**
