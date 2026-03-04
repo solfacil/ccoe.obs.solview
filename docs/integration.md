@@ -10,7 +10,9 @@ O `solview` foi projetado para oferecer **observabilidade unificada** — loggin
 |-----------|------------|---------------------|
 | `solview.logging` | Logging estruturado | JSON ECS, masking automático |
 | `solview.metrics` | Coleta de métricas | Prometheus, middleware ASGI |
-| `solview.tracing` | Tracing distribuído | OpenTelemetry, integração com FastAPI, SQL, HTTP |
+| `solview.tracing` | Tracing distribuído | OpenTelemetry, integração com FastAPI, SQL, HTTP, Redis |
+| `solview.mcp` | Observabilidade MCP | Middleware FastMCP, tracing sem FastAPI |
+| `solview.instrumentation.redis` | Instrumentação Redis | `redis_client_instrumentation`, métricas `redis_operations_*` |
 
 ---
 
@@ -60,6 +62,35 @@ def process_task(data):
 ```
 
 > Combine com exportação de métricas via `start_http_server(9100)` se desejar scraping Prometheus em workers.
+
+---
+
+### 🤖 FastMCP (Servidores MCP)
+
+```python
+from fastmcp import FastMCP
+from prometheus_client import start_http_server
+from solview import SolviewSettings, setup_settings, setup_logger
+from solview.mcp import SolviewMCPMiddleware, setup_mcp_tracer
+
+# Observabilidade
+setup_settings(SolviewSettings(service_name="mcp-assistente"))
+setup_logger()
+setup_mcp_tracer()
+
+# Métricas Prometheus (MCP não tem /metrics nativo)
+start_http_server(port=9090)
+
+# Servidor MCP instrumentado
+mcp = FastMCP("Assistente")
+mcp.add_middleware(SolviewMCPMiddleware())
+
+@mcp.tool
+async def consultar_saldo(conta: str) -> str:
+    return f"Saldo da conta {conta}: R$ 1.234,56"
+```
+
+> Instale com `pip install solview[mcp]`. Chamadas a httpx, asyncpg e sqlalchemy dentro das tools são automaticamente rastreadas via OpenTelemetry.
 
 ---
 

@@ -21,6 +21,7 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 - [📝 **Logging**](logging.md) - Logs estruturados e correlação
 - [🔍 **Tracing**](tracing.md) - Traces distribuídos e instrumentação
 - [🗺️ **Service Graph**](service-graph-explanation.md) - Visualização da topologia
+- [🤖 **MCP (FastMCP)**](mcp.md) - Observabilidade para servidores MCP
 
 ### 🎛️ **Grafana e Dashboards**
 - [🔗 **Correlação no Grafana**](grafana-correlation-setup.md) - Setup de correlações automáticas
@@ -43,6 +44,11 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 1. [📋 Guia de Instrumentação](instrumentation-guide.md) - Setup básico em 5 minutos
 2. [📈 Métricas](metrics.md) - Métricas customizadas
 3. [🔍 Tracing](tracing.md) - Traces manuais e automáticos
+
+**"Quero instrumentar meu servidor MCP (FastMCP)"**
+1. [🤖 Guia MCP](mcp.md) - Setup completo para FastMCP v2+
+2. [📈 Métricas](metrics.md) - Métricas (reusa business_operations_*)
+3. [🔍 Tracing](tracing.md) - Traces distribuídos
 
 **"Quero testar localmente"**
 1. [🚀 Quick Start](../README.md#-quick-start) - Docker Compose stack
@@ -83,6 +89,7 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 | **Logs** | Structured logging com JSON | [📝 Logging Guide](logging.md) |
 | **Traces** | OpenTelemetry distributed tracing | [🔍 Tracing Guide](tracing.md) |
 | **Correlação** | Automatic trace ↔ metrics ↔ logs | [🔗 Correlation Guide](trace-correlation-guide.md) |
+| **MCP** | Observabilidade para servidores FastMCP | [🤖 MCP Guide](mcp.md) |
 
 ### 🎛️ **Stack de Visualização**
 

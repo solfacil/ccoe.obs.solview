@@ -17,9 +17,10 @@ O **Solview** é uma biblioteca Python de observabilidade empresarial que implem
 - 🔍 **Traces Distribuídos**: Rastreamento completo de requisições cross-service
 - 📝 **Logs Estruturados**: JSON estruturado com campos padronizados
 - 🔒 **Masking de Dados**: Proteção automática de dados sensíveis
-- 🚀 **Zero Configuration**: Instrumentação automática via decorators
+- 🚀 **Zero Configuration**: Instrumentação automática via decorators e middleware
 - 🎯 **Service Graph**: Visualização automática da topologia de serviços
 - ⚡ **Performance**: Otimizado para alta throughput e baixa latência
+- 🤖 **MCP (FastMCP)**: Observabilidade para servidores MCP via `solview[mcp]`
 
 ---
 
@@ -49,7 +50,11 @@ graph TB
 ### 1. Instalação
 
 ```bash
+# Para aplicações FastAPI
 pip install solview
+
+# Para servidores MCP (FastMCP v2+)
+pip install solview[mcp]
 ```
 
 ### 2. Variáveis de Ambiente
@@ -99,6 +104,33 @@ uvicorn main:app --reload
 open http://localhost:3000  # Grafana
 ```
 
+### 5. Instrumentação MCP (FastMCP)
+
+```python
+from fastmcp import FastMCP
+from prometheus_client import start_http_server
+from solview import SolviewSettings, setup_settings
+from solview.mcp import SolviewMCPMiddleware, setup_mcp_tracer
+
+# Configuração
+setup_settings(SolviewSettings(service_name="meu-mcp-server"))
+setup_mcp_tracer()
+
+# Expor métricas Prometheus (MCP não tem /metrics nativo)
+start_http_server(port=9090)
+
+# Criar servidor MCP com observabilidade
+mcp = FastMCP("MeuServidor")
+mcp.add_middleware(SolviewMCPMiddleware())
+
+@mcp.tool
+async def buscar_dados(query: str) -> str:
+    # Tool calls são instrumentadas como business operations
+    # Métricas: business_operations_total{operation="tool.buscar_dados"}
+    # Spans: mcp.tool.buscar_dados
+    return f"Resultado: {query}"
+```
+
 ---
 
 ## 📚 Documentação Completa
@@ -123,6 +155,9 @@ open http://localhost:3000  # Grafana
 - [📊 **Service Graph**](docs/service-graph-explanation.md) - Visualização da topologia
 - [🔗 **Correlação no Grafana**](docs/grafana-correlation-setup.md) - Setup de correlações
 - [📈 **Dashboards**](docs/dashboards.md) - Dashboards prontos
+
+### 🤖 **MCP (Model Context Protocol)**
+- [🤖 **Guia MCP**](docs/mcp.md) - Observabilidade para servidores FastMCP
 
 ### 🏢 **Uso Empresarial**
  - [🔒 **Masking de Dados**](docs/masking.md) - Proteção de dados sensíveis

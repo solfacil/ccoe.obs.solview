@@ -40,13 +40,17 @@ ccoe.obs.solview/
 │   │   ├── 📄 __init__.py
 │   │   ├── 📄 core.py              # Setup OpenTelemetry
 │   │   └── 📄 propagators.py       # Propagação de contexto
-│   └── 📁 security/                # Módulo de masking
-│       ├── 📄 __init__.py
-│       ├── 📄 auth.py              # Autenticação
-│       ├── 📄 masking.py           # Masking avançado
-│       ├── 📄 middleware.py        # Middleware de segurança
-│       ├── 📄 secrets.py           # Gestão de secrets
-│       └── 📄 validation.py        # Validação de dados
+│   ├── 📁 security/                # Módulo de masking
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 auth.py              # Autenticação
+│   │   ├── 📄 masking.py           # Masking avançado
+│   │   ├── 📄 middleware.py        # Middleware de segurança
+│   │   ├── 📄 secrets.py           # Gestão de secrets
+│   │   └── 📄 validation.py        # Validação de dados
+│   └── 📁 mcp/                     # 🤖 Observabilidade para FastMCP
+│       ├── 📄 __init__.py          # API pública (SolviewMCPMiddleware, setup_mcp_tracer)
+│       ├── 📄 middleware.py        # Middleware FastMCP com tracing e métricas
+│       └── 📄 tracing.py           # Setup de tracing para MCP (sem FastAPI)
 │
 ├── 📁 docs/                        # 📚 DOCUMENTAÇÃO COMPLETA
 │   ├── 📄 README.md                # Índice da documentação
@@ -158,6 +162,13 @@ ccoe.obs.solview/
 └── 📁 tests/                       # 🧪 TESTES AUTOMATIZADOS
     ├── 📄 __init__.py
     ├── 📄 conftest.py              # Configuração pytest
+    ├── 📁 mcp/                     # 🤖 Testes do módulo MCP
+    │   ├── 📄 __init__.py
+    │   ├── 📄 conftest.py          # Fixtures para testes MCP
+    │   ├── 📄 test_middleware.py   # Testes do middleware (tool/resource/prompt)
+    │   ├── 📄 test_middleware_memory.py  # Testes de memory profiling
+    │   └── 📄 test_middleware_tracing.py # Testes de spans OpenTelemetry
+    │   └── 📄 test_tracing.py      # Testes do setup_mcp_tracer
     ├── 📁 integration/             # Testes de integração
     │   ├── 📄 test_logging.py
     │   ├── 📄 test_metrics.py

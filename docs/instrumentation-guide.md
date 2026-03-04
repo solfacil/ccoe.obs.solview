@@ -110,6 +110,50 @@ curl http://localhost:8000/api/users/123
 
 ---
 
+## 🤖 Instrumentação MCP (FastMCP)
+
+Para instrumentar servidores **FastMCP** (v2+), use o módulo `solview.mcp`:
+
+### 1. **Instalação**
+
+```bash
+pip install solview[mcp]
+```
+
+### 2. **Instrumentação**
+
+```python
+from fastmcp import FastMCP
+from prometheus_client import start_http_server
+from solview import SolviewSettings, setup_settings, setup_logger
+from solview.mcp import SolviewMCPMiddleware, setup_mcp_tracer
+
+# Configurar Solview
+setup_settings(SolviewSettings(service_name="meu-mcp-server"))
+setup_logger()
+setup_mcp_tracer()
+
+# Expor métricas (MCP não tem /metrics nativo)
+start_http_server(port=9090)
+
+# Servidor MCP com observabilidade
+mcp = FastMCP("MeuServidor")
+mcp.add_middleware(SolviewMCPMiddleware())
+
+@mcp.tool
+async def processar_pedido(pedido_id: str) -> str:
+    # Automaticamente instrumentado:
+    # - Span: mcp.tool.processar_pedido
+    # - Métrica: business_operations_total{operation="tool.processar_pedido"}
+    return f"Pedido {pedido_id} processado"
+```
+
+O `setup_mcp_tracer()` ativa as mesmas auto-instrumentações de biblioteca (httpx, asyncpg, sqlalchemy, requests) que o `setup_tracer()` usa para FastAPI, mas sem depender de FastAPI.
+
+Para mais detalhes, veja o [Guia MCP completo](mcp.md).
+
+---
+
 ## 🔧 Instrumentação Avançada
 
 ### 📊 **Métricas Customizadas**
@@ -384,6 +428,26 @@ class ExternalAPIClient:
 
 ---
 
+## 🔴 Instrumentação Redis
+
+Para instrumentação manual de operações Redis com métricas Prometheus, use o decorator `redis_client_instrumentation`:
+
+```python
+from solview import redis_client_instrumentation
+
+@redis_client_instrumentation(command="get")
+async def get_cache(key: str) -> str | None:
+    return await redis_client.get(key)
+
+@redis_client_instrumentation(command="set")
+async def set_cache(key: str, value: str, ttl: int = 300):
+    await redis_client.set(key, value, ex=ttl)
+```
+
+O decorator registra métricas `redis_operations_*` (total, duração, erros, memória). A auto-instrumentação via `setup_tracer()` ou `setup_mcp_tracer()` já rastreia operações Redis com OpenTelemetry (tanto `redis` sync quanto `redis.asyncio` async).
+
+---
+
 ## 🗄️ Instrumentação de Banco de Dados
 
 ### 🐘 **PostgreSQL com SQLAlchemy**
@@ -596,6 +660,7 @@ logger.info("Test", key="value")  # Deve gerar JSON
 - [📊 Guia de Métricas](metrics.md) - Métricas disponíveis
 - [🔍 Guia de Tracing](tracing.md) - Traces distribuídos
 - [📝 Guia de Logging](logging.md) - Logs estruturados
+- [🤖 Guia MCP](mcp.md) - Observabilidade para FastMCP
  
 
 ---

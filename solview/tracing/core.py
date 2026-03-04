@@ -9,6 +9,7 @@ from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
 from opentelemetry.sdk.trace import TracerProvider, sampling
@@ -75,6 +76,7 @@ def setup_tracer(app: FastAPI = None) -> TracerProvider:
     SQLAlchemyInstrumentor().instrument(enable_commenter=settings.otlp_sqlalchemy_enable_commenter, commenter_options={})
     HttpClientInstrumentor().instrument()
     RequestsInstrumentor().instrument()
+    RedisInstrumentor().instrument()
     if app:
         # Define URLs de infraestrutura que devem ser excluídas do tracing
         excluded_urls = "/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"

@@ -77,9 +77,13 @@ solview/
 │   ├── __init__.py
 │   ├── core.py             # Setup OpenTelemetry
 │   └── propagators.py      # Propagação de contexto
-└── security/                # Módulo de masking
-    ├── __init__.py         # Exporta somente masking
-    └── masking.py          # Masking avançado
+├── security/                # Módulo de masking
+│   ├── __init__.py         # Exporta somente masking
+│   └── masking.py          # Masking avançado
+└── mcp/                     # Observabilidade para FastMCP (v2+)
+    ├── __init__.py          # API pública (SolviewMCPMiddleware, setup_mcp_tracer)
+    ├── middleware.py        # Middleware FastMCP com tracing e métricas
+    └── tracing.py           # Setup de tracing sem dependência de FastAPI
 ```
 
 #### **API Principal**

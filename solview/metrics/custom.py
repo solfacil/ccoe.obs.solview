@@ -1,5 +1,5 @@
 """
-Custom metrics for Kafka, HTTP client, and business operations instrumentation.
+Custom metrics for Kafka, HTTP client, Redis, and business operations instrumentation.
 """
 
 from prometheus_client import Counter, Histogram
@@ -125,6 +125,50 @@ HTTP_OUTGOING_REQUESTS_MEMORY_BYTES = Histogram(
     "http_outgoing_requests_memory_bytes",
     "Memory usage of outgoing HTTP requests in bytes.",
     ["method", "url_host", "url_path", "app_name", "status"],
+    buckets=[
+        1024,        # 1 KB
+        10240,       # 10 KB
+        102400,      # 100 KB
+        1048576,     # 1 MB
+        10485760,    # 10 MB
+        104857600,   # 100 MB
+        1073741824,  # 1 GB
+    ],
+)
+
+# =============================================================================
+# Redis Client Metrics
+# =============================================================================
+
+REDIS_OPERATIONS_TOTAL = Counter(
+    "redis_operations_total",
+    "Total number of Redis operations executed.",
+    ["command", "app_name", "status"],
+)
+
+REDIS_OPERATIONS_DURATION_SECONDS = Histogram(
+    "redis_operations_duration_seconds",
+    "Duration of Redis operations in seconds.",
+    ["command", "app_name", "status"],
+    buckets=[0.0005, 0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0],
+)
+
+REDIS_OPERATIONS_ERRORS_TOTAL = Counter(
+    "redis_operations_errors_total",
+    "Total number of Redis operation errors.",
+    ["command", "error_type", "app_name"],
+)
+
+REDIS_OPERATIONS_MEMORY_SAMPLES_TOTAL = Counter(
+    "redis_operations_memory_samples_total",
+    "Total number of memory samples taken for Redis operations.",
+    ["command", "app_name"],
+)
+
+REDIS_OPERATIONS_MEMORY_BYTES = Histogram(
+    "redis_operations_memory_bytes",
+    "Memory usage of Redis operations in bytes.",
+    ["command", "app_name", "status"],
     buckets=[
         1024,        # 1 KB
         10240,       # 10 KB
