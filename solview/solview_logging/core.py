@@ -161,23 +161,49 @@ def _create_async_sink():
         await ecs_sink(message)
     return sink_wrapper
 
+class _InterceptHandler(logging.Handler):
+    """Redireciona logs do standard logging para o Loguru."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            level = logger.level(record.levelname).name
+        except Exception:
+            level = record.levelno
+        frame, depth = logging.currentframe(), 2
+        while frame and frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
+
+
+_INTERCEPTED_LIBRARIES = (
+    "httpx", "httpx._client",
+    "sqlalchemy", "sqlalchemy.engine", "sqlalchemy.engine.Engine",
+    "sqlalchemy.orm",
+    "asyncpg",
+    "urllib3", "urllib3.connectionpool",
+    "requests",
+    "redis",
+    "mcp",
+)
+
+
 def _redirect_std_logging():
     """Redireciona logging padrão Python para Loguru (para capturar tudo)"""
-    class InterceptHandler(logging.Handler):
-        def emit(self, record: logging.LogRecord) -> None:
-            try:
-                level = logger.level(record.levelname).name
-            except Exception:
-                level = record.levelno
-            frame, depth = logging.currentframe(), 2
-            while frame and frame.f_code.co_filename == logging.__file__:
-                frame = frame.f_back
-                depth += 1
-            logger.opt(depth=depth, exception=record.exc_info).log(
-                level, record.getMessage()
-            )
+    handler = _InterceptHandler()
 
-    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(handler)
+    root.setLevel(logging.NOTSET)
+
+    for name in _INTERCEPTED_LIBRARIES:
+        lib_logger = logging.getLogger(name)
+        lib_logger.handlers.clear()
+        lib_logger.addHandler(handler)
+        lib_logger.propagate = False
 
 def _exclude_uvicorn_logs():
     """Diminui verbosidade do Uvicorn (caso rode FastAPI/etc)"""
