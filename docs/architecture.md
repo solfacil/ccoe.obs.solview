@@ -81,9 +81,8 @@ solview/
 │   ├── __init__.py         # Exporta somente masking
 │   └── masking.py          # Masking avançado
 └── mcp/                     # Observabilidade para FastMCP (v2+)
-    ├── __init__.py          # API pública (SolviewMCPMiddleware, setup_mcp_tracer)
-    ├── middleware.py        # Middleware FastMCP com tracing e métricas
-    └── tracing.py           # Setup de tracing sem dependência de FastAPI
+    ├── __init__.py          # API pública (SolviewMCPMiddleware)
+    └── middleware.py        # Middleware FastMCP com tracing e métricas
 ```
 
 #### **API Principal**

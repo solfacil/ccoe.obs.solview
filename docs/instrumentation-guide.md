@@ -124,13 +124,13 @@ pip install solview[mcp]
 ```python
 from fastmcp import FastMCP
 from prometheus_client import start_http_server
-from solview import SolviewSettings, setup_settings, setup_logger
-from solview.mcp import SolviewMCPMiddleware, setup_mcp_tracer
+from solview import SolviewSettings, setup_settings, setup_logger, setup_tracer
+from solview.mcp import SolviewMCPMiddleware
 
 # Configurar Solview
 setup_settings(SolviewSettings(service_name="meu-mcp-server"))
 setup_logger()
-setup_mcp_tracer()
+setup_tracer()
 
 # Expor métricas (MCP não tem /metrics nativo)
 start_http_server(port=9090)
@@ -147,7 +147,7 @@ async def processar_pedido(pedido_id: str) -> str:
     return f"Pedido {pedido_id} processado"
 ```
 
-O `setup_mcp_tracer()` ativa as mesmas auto-instrumentações de biblioteca (httpx, asyncpg, sqlalchemy, requests) que o `setup_tracer()` usa para FastAPI, mas sem depender de FastAPI.
+O `setup_tracer()` sem app ativa as mesmas auto-instrumentações de biblioteca (httpx, asyncpg, sqlalchemy, requests, redis) sem aplicar instrumentação específica de FastAPI.
 
 Para mais detalhes, veja o [Guia MCP completo](mcp.md).
 
@@ -443,7 +443,7 @@ async def set_cache(key: str, value: str, ttl: int = 300):
     await redis_client.set(key, value, ex=ttl)
 ```
 
-O decorator registra métricas `redis_operations_*` (total, duração, erros, memória). A auto-instrumentação via `setup_tracer()` ou `setup_mcp_tracer()` já rastreia operações Redis com OpenTelemetry (tanto `redis` sync quanto `redis.asyncio` async).
+O decorator registra métricas `redis_operations_*` (total, duração, erros, memória). A auto-instrumentação via `setup_tracer()` já rastreia operações Redis com OpenTelemetry (tanto `redis` sync quanto `redis.asyncio` async).
 
 ---
 

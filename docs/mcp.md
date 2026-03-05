@@ -19,15 +19,15 @@ Isso instala o `solview` junto com o `fastmcp` como dependência.
 ```python
 from fastmcp import FastMCP
 from prometheus_client import start_http_server
-from solview import SolviewSettings, setup_settings, setup_logger
-from solview.mcp import SolviewMCPMiddleware, setup_mcp_tracer
+from solview import SolviewSettings, setup_settings, setup_logger, setup_tracer
+from solview.mcp import SolviewMCPMiddleware
 
 # 1. Configurar Solview
 setup_settings(SolviewSettings(service_name="meu-mcp-server"))
 setup_logger()
 
-# 2. Configurar tracing (httpx, asyncpg, sqlalchemy, requests, etc.)
-setup_mcp_tracer()
+# 2. Configurar tracing (httpx, asyncpg, sqlalchemy, requests, redis, etc.)
+setup_tracer()
 
 # 3. Expor métricas para Prometheus
 start_http_server(port=9090)
@@ -108,9 +108,9 @@ Os spans seguem o padrão `mcp.<tipo>.<nome>`:
 
 ---
 
-## 🔧 setup_mcp_tracer()
+## 🔧 setup_tracer() para MCP
 
-A função `setup_mcp_tracer()` configura o TracerProvider e as auto-instrumentações de biblioteca, **sem depender de FastAPI**:
+A função `setup_tracer()` (de `solview.tracing`) é **unificada** para FastAPI e FastMCP. Quando chamada **sem** o argumento `app`, aplica apenas as auto-instrumentações de biblioteca:
 
 | Instrumentação | Biblioteca | O que captura |
 |----------------|-----------|---------------|
@@ -122,11 +122,13 @@ A função `setup_mcp_tracer()` configura o TracerProvider e as auto-instrumenta
 | HttpClientInstrumentor | `http.client` | stdlib HTTP |
 | RedisInstrumentor | `redis`, `redis.asyncio` | Operações Redis sync e async |
 
+Quando chamada **com** `app` (instância de FastAPI), aplica adicionalmente `FastAPIInstrumentor` e `prometheus-fastapi-instrumentator`.
+
 Isso significa que se sua tool MCP faz chamadas HTTP (httpx/requests), acessa banco de dados (asyncpg/sqlalchemy) ou usa Redis (`redis` e `redis.asyncio`), essas operações serão **automaticamente rastreadas** como child spans.
 
-### Comparação com setup_tracer
+### Comportamento por contexto
 
-| Funcionalidade | `setup_tracer(app)` | `setup_mcp_tracer()` |
+| Funcionalidade | `setup_tracer(app)` | `setup_tracer()` |
 |---------------|:---:|:---:|
 | TracerProvider + sampler | ✅ | ✅ |
 | MeterProvider + Prometheus | ✅ | ✅ |
@@ -201,17 +203,17 @@ pytest tests/mcp/ --cov=solview.mcp -v
 | `test_middleware.py` | Tool calls, resource reads, prompt gets (success + error) |
 | `test_middleware_memory.py` | Memory profiling habilitado/desabilitado |
 | `test_middleware_tracing.py` | Spans, atributos, status OK/ERROR, exception events |
-| `test_tracing.py` | setup_mcp_tracer, instrumentors, unittest mode |
+| `test_tracing.py` | setup_tracer sem app, instrumentors, unittest mode |
 
 ---
 
 ## 🎯 Boas Práticas
 
-1. **Sempre chame `setup_settings()` antes** de `setup_mcp_tracer()` e do middleware
+1. **Sempre chame `setup_settings()` antes** de `setup_tracer()` e do middleware
 2. **Use `start_http_server`** para expor métricas — o MCP não tem `/metrics` nativo
 3. **Nomeie suas tools de forma descritiva** — o nome vira label `operation` nas métricas
 4. **Configure sampling de memória** adequado ao ambiente (produção: 1%)
-5. **Use `setup_mcp_tracer()`** em vez de `setup_tracer()` — evita dependência desnecessária de FastAPI
+5. **Use `setup_tracer()` sem app** — a mesma função funciona para FastAPI e FastMCP
 
 ---
 

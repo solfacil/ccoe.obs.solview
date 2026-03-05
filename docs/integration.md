@@ -11,7 +11,7 @@ O `solview` foi projetado para oferecer **observabilidade unificada** — loggin
 | `solview.logging` | Logging estruturado | JSON ECS, masking automático |
 | `solview.metrics` | Coleta de métricas | Prometheus, middleware ASGI |
 | `solview.tracing` | Tracing distribuído | OpenTelemetry, integração com FastAPI, SQL, HTTP, Redis |
-| `solview.mcp` | Observabilidade MCP | Middleware FastMCP, tracing sem FastAPI |
+| `solview.mcp` | Observabilidade MCP | Middleware FastMCP, usa `setup_tracer()` sem app |
 | `solview.instrumentation.redis` | Instrumentação Redis | `redis_client_instrumentation`, métricas `redis_operations_*` |
 
 ---
@@ -70,13 +70,13 @@ def process_task(data):
 ```python
 from fastmcp import FastMCP
 from prometheus_client import start_http_server
-from solview import SolviewSettings, setup_settings, setup_logger
-from solview.mcp import SolviewMCPMiddleware, setup_mcp_tracer
+from solview import SolviewSettings, setup_settings, setup_logger, setup_tracer
+from solview.mcp import SolviewMCPMiddleware
 
 # Observabilidade
 setup_settings(SolviewSettings(service_name="mcp-assistente"))
 setup_logger()
-setup_mcp_tracer()
+setup_tracer()
 
 # Métricas Prometheus (MCP não tem /metrics nativo)
 start_http_server(port=9090)

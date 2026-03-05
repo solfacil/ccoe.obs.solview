@@ -97,17 +97,17 @@ span = extract_correlation_context(headers)
 
 ## 🤖 Tracing para MCP (FastMCP)
 
-Para servidores FastMCP (v2+), use `setup_mcp_tracer()` em vez de `setup_tracer()`:
+Para servidores FastMCP (v2+), use o mesmo `setup_tracer()` — basta chamá-lo **sem** o argumento `app`:
 
 ```python
-from solview import SolviewSettings, setup_settings
-from solview.mcp import setup_mcp_tracer, SolviewMCPMiddleware
+from solview import SolviewSettings, setup_settings, setup_tracer
+from solview.mcp import SolviewMCPMiddleware
 
 setup_settings(SolviewSettings(service_name="meu-mcp-server"))
-setup_mcp_tracer()
+setup_tracer()
 ```
 
-O `setup_mcp_tracer()` configura o TracerProvider e ativa as mesmas auto-instrumentações de biblioteca (httpx, requests, asyncpg, sqlalchemy, logging), mas sem depender de FastAPI ou `prometheus-fastapi-instrumentator`.
+Quando `app` não é passado (ou é `None`), o `setup_tracer()` configura o TracerProvider e ativa as auto-instrumentações de biblioteca (httpx, requests, asyncpg, sqlalchemy, redis, logging), sem aplicar instrumentação específica de FastAPI.
 
 O `SolviewMCPMiddleware` gera spans para cada operação MCP:
 - `mcp.tool.<nome>` — chamadas de tools

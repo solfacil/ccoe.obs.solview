@@ -109,12 +109,12 @@ open http://localhost:3000  # Grafana
 ```python
 from fastmcp import FastMCP
 from prometheus_client import start_http_server
-from solview import SolviewSettings, setup_settings
-from solview.mcp import SolviewMCPMiddleware, setup_mcp_tracer
+from solview import SolviewSettings, setup_settings, setup_tracer
+from solview.mcp import SolviewMCPMiddleware
 
 # Configuração
 setup_settings(SolviewSettings(service_name="meu-mcp-server"))
-setup_mcp_tracer()
+setup_tracer()
 
 # Expor métricas Prometheus (MCP não tem /metrics nativo)
 start_http_server(port=9090)
