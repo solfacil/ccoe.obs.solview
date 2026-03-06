@@ -6,6 +6,22 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [3.0.0] - 2026-03-04
+
+### ✨ Adicionado
+- **Módulo `solview.mcp`** para observabilidade de servidores FastMCP (v2+)
+- **`SolviewMCPMiddleware`** — middleware FastMCP que instrumenta tool calls, resource reads e prompt gets com spans OpenTelemetry e métricas Prometheus (`business_operations_*`)
+- **`setup_tracer()` unificado** — aceita `app=None`; quando sem app (FastMCP/scripts), aplica apenas auto-instrumentações de biblioteca; quando com FastAPI, aplica também FastAPIInstrumentor e prometheus-fastapi-instrumentator
+- **Dependência opcional** `solview[mcp]` via `pip install solview[mcp]`
+- **Testes completos** em `tests/mcp/` (middleware, memory profiling, tracing, setup)
+- **Documentação** `docs/mcp.md` com guia completo de uso
+- `opentelemetry-instrumentation-redis` — auto-instrumentação para `redis` (sync) e `redis.asyncio` (async)
+- `RedisInstrumentor().instrument()` em `setup_tracer()` (FastAPI e MCP)
+- Decorator `redis_client_instrumentation(command="get")` para instrumentação manual com métricas Prometheus
+- Métricas Redis: `redis_operations_total`, `redis_operations_duration_seconds`, `redis_operations_errors_total`, `redis_operations_memory_bytes`, `redis_operations_memory_samples_total` (labels: `command`, `app_name`, `status`, `error_type`)
+
+---
+
 ## [2.0.1] - 2025-08-20
 
 ### ✨ Adicionado

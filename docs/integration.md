@@ -10,7 +10,9 @@ O `solview` foi projetado para oferecer **observabilidade unificada** — loggin
 |-----------|------------|---------------------|
 | `solview.logging` | Logging estruturado | JSON ECS, masking automático |
 | `solview.metrics` | Coleta de métricas | Prometheus, middleware ASGI |
-| `solview.tracing` | Tracing distribuído | OpenTelemetry, integração com FastAPI, SQL, HTTP |
+| `solview.tracing` | Tracing distribuído | OpenTelemetry, integração com FastAPI, SQL, HTTP, Redis |
+| `solview.mcp` | Observabilidade MCP | Middleware FastMCP, usa `setup_tracer()` sem app |
+| `solview.instrumentation.redis` | Instrumentação Redis | `redis_client_instrumentation`, métricas `redis_operations_*` |
 
 ---
 
@@ -63,6 +65,35 @@ def process_task(data):
 
 ---
 
+### 🤖 FastMCP (Servidores MCP)
+
+```python
+from fastmcp import FastMCP
+from prometheus_client import start_http_server
+from solview import SolviewSettings, setup_settings, setup_logger, setup_tracer
+from solview.mcp import SolviewMCPMiddleware
+
+# Observabilidade
+setup_settings(SolviewSettings(service_name="mcp-assistente"))
+setup_logger()
+setup_tracer()
+
+# Métricas Prometheus (MCP não tem /metrics nativo)
+start_http_server(port=9090)
+
+# Servidor MCP instrumentado
+mcp = FastMCP("Assistente")
+mcp.add_middleware(SolviewMCPMiddleware())
+
+@mcp.tool
+async def consultar_saldo(conta: str) -> str:
+    return f"Saldo da conta {conta}: R$ 1.234,56"
+```
+
+> Instale com `pip install solview[mcp]`. Chamadas a httpx, asyncpg e sqlalchemy dentro das tools são automaticamente rastreadas via OpenTelemetry.
+
+---
+
 ### 🐍 Scripts Python
 
 ```python
@@ -85,18 +116,18 @@ if __name__ == "__main__":
 Configure tudo via `.env` ou variáveis de ambiente:
 
 ```env
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_ENVIRONMENT=production
-SOLVIEW_SERVICE_NAME=api-vendas
-SOLVIEW_DOMAIN=vendas
-SOLVIEW_SUBDOMAIN=checkout
-SOLVIEW_VERSION=1.2.0
+LOG_LEVEL=INFO
+ENVIRONMENT=production
+SERVICE_NAME=api-vendas
+DOMAIN=vendas
+SUBDOMAIN=checkout
+VERSION=1.2.0
 
-OTEL_SERVICE_NAME=api-vendas
-OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector
-OTEL_EXPORTER_OTLP_ENDPOINT_PORT=4317
+OTLP_EXPORTER_HOST=otel-collector
+OTEL_SERVICE_NAMESPACE=api-vendas
 ```
+
+> **Nota:** Configurações como `otlp_exporter_protocol` e `otlp_exporter_port` são definidas programaticamente via `TracingSettings`.
 
 ---
 

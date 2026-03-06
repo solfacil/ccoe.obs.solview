@@ -177,7 +177,7 @@ def _redirect_std_logging():
                 level, record.getMessage()
             )
 
-    logging.basicConfig(handlers=[InterceptHandler()], level=0)
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
 def _exclude_uvicorn_logs():
     """Diminui verbosidade do Uvicorn (caso rode FastAPI/etc)"""

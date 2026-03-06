@@ -1,14 +1,13 @@
 import logging
 import os
-from typing import Optional, Dict
-from fastapi import FastAPI
+from typing import Any, Optional, Dict
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter as OTLPSpanGrpcExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter as OTLPSpanHttpExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import _append_trace_path
 from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
 from opentelemetry.sdk.trace import TracerProvider, sampling
@@ -18,7 +17,6 @@ from opentelemetry.trace import set_tracer_provider
 from opentelemetry.metrics import set_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
-from prometheus_fastapi_instrumentator import Instrumentator
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.util.http.httplib import HttpClientInstrumentor
 from ..config import get_settings, setup_settings
@@ -27,11 +25,17 @@ from ..settings import SolviewSettings
 logger = logging.getLogger("solview.tracing.core")
 
 
-def setup_tracer(app: FastAPI = None) -> TracerProvider:
+def setup_tracer(app: Any = None) -> TracerProvider:
     """
-    Setup do OpenTelemetry tracing provider e instrumentação para FastAPI e libs relacionadas.
+    Setup do OpenTelemetry tracing provider e auto-instrumentações de biblioteca.
 
-    Usa a configuração atual de get_settings(). Para configurar por env antes, use configure_solview() ou setup_tracer_from_env(app).
+    Funciona tanto para FastAPI quanto para FastMCP (ou qualquer app Python):
+    - Quando ``app`` é uma instância de ``FastAPI``, aplica instrumentação
+      específica (FastAPIInstrumentor + prometheus-fastapi-instrumentator).
+    - Quando ``app`` é ``None`` (ex.: FastMCP), aplica apenas as instrumentações
+      de biblioteca (httpx, requests, asyncpg, sqlalchemy, redis, logging).
+
+    Usa a configuração atual de get_settings().
     """
 
     settings = get_settings()
@@ -44,7 +48,6 @@ def setup_tracer(app: FastAPI = None) -> TracerProvider:
         service_namespace=settings.service_namespace,
     )
 
-    # TracerProvider para tracing
     tracer_provider = TracerProvider(
         sampler=_get_sampler(settings.trace_sampler, settings.trace_sampling_ratio),
         resource=resource,
@@ -52,7 +55,6 @@ def setup_tracer(app: FastAPI = None) -> TracerProvider:
     set_tracer_provider(tracer_provider)
     logger.info("TracerProvider configurado | Serviço: %s v%s", service_name, service_version)
 
-    # MeterProvider para métricas Prometheus
     prometheus_reader = PrometheusMetricReader()
     metrics_provider = MeterProvider(metric_readers=[prometheus_reader])
     set_meter_provider(metrics_provider)
@@ -67,25 +69,43 @@ def setup_tracer(app: FastAPI = None) -> TracerProvider:
 
     os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
 
-    # Instrumentação automática
-    Instrumentator().instrument(app=app).expose(app)
+    # Auto-instrumentações de biblioteca (framework-agnostic)
     LoggingInstrumentor().instrument(set_logging_format=True)
     HTTPXClientInstrumentor().instrument()
     AsyncPGInstrumentor().instrument()
     SQLAlchemyInstrumentor().instrument(enable_commenter=settings.otlp_sqlalchemy_enable_commenter, commenter_options={})
     HttpClientInstrumentor().instrument()
     RequestsInstrumentor().instrument()
-    if app:
-        # Define URLs de infraestrutura que devem ser excluídas do tracing
-        excluded_urls = "/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"
-        
-        FastAPIInstrumentor().instrument_app(
-            app=app, 
-            excluded_urls=excluded_urls
-        )
-        logger.info("[solview.tracing] FastAPI instrumentada para tracing (excluindo URLs de infraestrutura: %s)", excluded_urls)
+    RedisInstrumentor().instrument()
+    logger.info(
+        "[solview.tracing] Instrumentação library-level ativada "
+        "(httpx, requests, asyncpg, sqlalchemy, redis, logging, http.client)"
+    )
 
-    # Exportador OTLP
+    # Instrumentação específica de FastAPI (só quando app é FastAPI)
+    if app:
+        try:
+            from fastapi import FastAPI as _FastAPI
+
+            if isinstance(app, _FastAPI):
+                from prometheus_fastapi_instrumentator import Instrumentator
+                from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+                Instrumentator().instrument(app=app).expose(app)
+
+                excluded_urls = "/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"
+                FastAPIInstrumentor().instrument_app(
+                    app=app,
+                    excluded_urls=excluded_urls,
+                )
+                logger.info(
+                    "[solview.tracing] FastAPI instrumentada para tracing "
+                    "(excluindo URLs de infraestrutura: %s)",
+                    excluded_urls,
+                )
+        except ImportError:
+            logger.debug("[solview.tracing] FastAPI não instalado — instrumentação FastAPI ignorada")
+
     exporter = _get_otlp_span_exporter(
         protocol=settings.otlp_exporter_protocol,
         host=settings.otlp_exporter_host,
@@ -98,7 +118,7 @@ def setup_tracer(app: FastAPI = None) -> TracerProvider:
     return tracer_provider
 
 
-def setup_tracer_from_env(app: FastAPI) -> TracerProvider:
+def setup_tracer_from_env(app: Any = None) -> TracerProvider:
     """
     Garante que get_settings() está preenchido por env e chama setup_tracer(app).
     """

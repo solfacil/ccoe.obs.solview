@@ -1,19 +1,14 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "solview"
-version = "1.0.1"
+version = "3.0.0"
 description = "Observabilidade clara como o Sol"
 authors = [
     { name = "Solfácil", email = "jefferson.martins@solfacil.com.br" },
     { name = "Solfácil", email = "marcelo.souza@solfacil.com.br" },
-    { name = "Solfácil", email = "vitor.garcia@solfacil.com.br" }
+    { name = "Solfácil", email = "vitor.garcia@solfacil.com.br" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 readme = "README.md"
-# license = {text = "MIT"}
 dependencies = [
     "loguru",
     "prometheus_client",
@@ -35,8 +30,18 @@ dependencies = [
     "sqlalchemy>=2.0.40",
     "opentelemetry-exporter-prometheus (>=0.60b1,<0.61)",
     "prometheus-fastapi-instrumentator (>=7.1.0,<8.0.0)",
-    "opentelemetry-instrumentation-requests (>=0.60b1,<0.61)"
+    "opentelemetry-instrumentation-requests (>=0.60b1)",
+    "opentelemetry-instrumentation-redis (>=0.60b1)",
+    "httpx>=0.28.1",
+    "redis>=7.2.1",
 ]
+
+[project.optional-dependencies]
+mcp = ["fastmcp>=2.0.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -46,4 +51,12 @@ include = [
 [tool.hatch.build.targets.wheel]
 include = [
     "solview"
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "fastmcp>=2.0.0",
+    "ruff>=0.15.4",
 ]

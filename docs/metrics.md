@@ -86,6 +86,43 @@ start_http_server(9100)  # expõe métricas em http://localhost:8000
 
 ---
 
+## 🤖 Métricas MCP (FastMCP)
+
+O módulo `solview.mcp` reutiliza a família de métricas `business_operations_*` para instrumentar servidores FastMCP:
+
+| Métrica | Labels | Exemplo |
+|---------|--------|---------|
+| `business_operations_total` | `operation`, `app_name`, `status` | `operation="tool.buscar_cliente"` |
+| `business_operations_duration_seconds` | `operation`, `app_name`, `status` | Latência da tool call |
+| `business_operations_memory_bytes` | `operation`, `app_name`, `status` | Quando memory profiling ativo |
+
+O label `operation` segue o padrão `<tipo>.<nome>`:
+- Tool calls: `tool.nome_da_tool`
+- Resource reads: `resource.uri`
+- Prompt gets: `prompt.nome_do_prompt`
+
+O MCP não expõe `/metrics` nativamente. Use `prometheus_client.start_http_server(port=9090)` para expor as métricas.
+
+Para mais detalhes, veja o [Guia MCP](mcp.md).
+
+---
+
+## 🔴 Métricas Redis
+
+O Solview oferece métricas Prometheus para operações Redis quando você usa o decorator `redis_client_instrumentation`:
+
+| Métrica | Tipo | Labels | Descrição |
+|---------|------|--------|-----------|
+| `redis_operations_total` | Counter | `command`, `app_name`, `status` | Total de operações Redis |
+| `redis_operations_duration_seconds` | Histogram | `command`, `app_name`, `status` | Duração das operações Redis |
+| `redis_operations_errors_total` | Counter | `command`, `app_name`, `error_type` | Total de erros por tipo |
+| `redis_operations_memory_bytes` | Histogram | `command`, `app_name`, `status` | Uso de memória (quando memory profiling ativo) |
+| `redis_operations_memory_samples_total` | Counter | `command`, `app_name` | Amostras de memória coletadas |
+
+Labels: `command` (ex: `get`, `set`), `app_name`, `status` (ex: `ok`, `error`), e `error_type` para erros.
+
+---
+
 ## 🎯 Melhores Práticas
 
 * Utilize labels consistentes como `service_name` para facilitar queries e dashboards.

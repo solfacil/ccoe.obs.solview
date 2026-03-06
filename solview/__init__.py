@@ -13,6 +13,7 @@ from .instrumentation import (
     kafka_consumer_instrumentation,
     http_client_instrumentation,
     business_operation_instrumentation,
+    redis_client_instrumentation,
 )
 from .metrics import setup_db_pool_metrics
 
@@ -31,4 +32,5 @@ __all__ = [
     "kafka_consumer_instrumentation",
     "http_client_instrumentation",
     "business_operation_instrumentation",
+    "redis_client_instrumentation",
 ]

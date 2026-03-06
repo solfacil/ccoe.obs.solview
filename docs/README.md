@@ -21,6 +21,7 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 - [📝 **Logging**](logging.md) - Logs estruturados e correlação
 - [🔍 **Tracing**](tracing.md) - Traces distribuídos e instrumentação
 - [🗺️ **Service Graph**](service-graph-explanation.md) - Visualização da topologia
+- [🤖 **MCP (FastMCP)**](mcp.md) - Observabilidade para servidores MCP
 
 ### 🎛️ **Grafana e Dashboards**
 - [🔗 **Correlação no Grafana**](grafana-correlation-setup.md) - Setup de correlações automáticas
@@ -43,6 +44,11 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 1. [📋 Guia de Instrumentação](instrumentation-guide.md) - Setup básico em 5 minutos
 2. [📈 Métricas](metrics.md) - Métricas customizadas
 3. [🔍 Tracing](tracing.md) - Traces manuais e automáticos
+
+**"Quero instrumentar meu servidor MCP (FastMCP)"**
+1. [🤖 Guia MCP](mcp.md) - Setup completo para FastMCP v2+
+2. [📈 Métricas](metrics.md) - Métricas (reusa business_operations_*)
+3. [🔍 Tracing](tracing.md) - Traces distribuídos
 
 **"Quero testar localmente"**
 1. [🚀 Quick Start](../README.md#-quick-start) - Docker Compose stack
@@ -83,6 +89,7 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 | **Logs** | Structured logging com JSON | [📝 Logging Guide](logging.md) |
 | **Traces** | OpenTelemetry distributed tracing | [🔍 Tracing Guide](tracing.md) |
 | **Correlação** | Automatic trace ↔ metrics ↔ logs | [🔗 Correlation Guide](trace-correlation-guide.md) |
+| **MCP** | Observabilidade para servidores FastMCP | [🤖 MCP Guide](mcp.md) |
 
 ### 🎛️ **Stack de Visualização**
 
@@ -133,27 +140,29 @@ async def root():
 
 ### 🏠 **Desenvolvimento**
 ```bash
-SOLVIEW_ENVIRONMENT=dev
-SOLVIEW_LOG_LEVEL=DEBUG
-SOLVIEW_TRACE_SAMPLING_RATE=1.0
-SOLVIEW_ENABLE_DATA_MASKING=false
+ENVIRONMENT=dev
+LOG_LEVEL=DEBUG
+ENABLE_MEMORY_PROFILING=true
+SAMPLING_MEMORY_PROFILING=1.0
 ```
 
 ### 🧪 **Staging**
 ```bash
-SOLVIEW_ENVIRONMENT=dev
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_TRACE_SAMPLING_RATE=0.5
-SOLVIEW_ENABLE_DATA_MASKING=true
+ENVIRONMENT=stg
+LOG_LEVEL=INFO
+ENABLE_MEMORY_PROFILING=true
+SAMPLING_MEMORY_PROFILING=0.1
 ```
 
 ### 🚀 **Produção**
 ```bash
-SOLVIEW_ENVIRONMENT=prd
-SOLVIEW_LOG_LEVEL=INFO
-SOLVIEW_TRACE_SAMPLING_RATE=0.05
-SOLVIEW_ENABLE_DATA_MASKING=true
+ENVIRONMENT=prd
+LOG_LEVEL=INFO
+ENABLE_MEMORY_PROFILING=true
+SAMPLING_MEMORY_PROFILING=0.01
 ```
+
+> **Nota:** `trace_sampling_ratio` é configurado programaticamente via `TracingSettings(trace_sampling_ratio=0.05)`.
 
 ---
 
@@ -199,7 +208,7 @@ docker logs solview-prometheus
 curl http://localhost:4317/v1/traces
 
 # Verificar variáveis de ambiente
-env | grep SOLVIEW_OTLP
+env | grep OTLP_EXPORTER
 ```
 
 **P: Correlação não funciona**

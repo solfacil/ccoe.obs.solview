@@ -39,13 +39,13 @@ def create_app() -> FastAPI:
 
 ```python
 # ✅ BOM: Nomes padronizados
-SOLVIEW_SERVICE_NAME=payment-api       # kebab-case
-SOLVIEW_SERVICE_NAME=user-management   # consistente
-SOLVIEW_SERVICE_NAME=order-processor   # descritivo
+SERVICE_NAME=payment-api       # kebab-case
+SERVICE_NAME=user-management   # consistente
+SERVICE_NAME=order-processor   # descritivo
 
 # ✅ BOM: Versionamento semântico
-SOLVIEW_SERVICE_VERSION=1.2.3
-SOLVIEW_SERVICE_VERSION=2.0.0-beta.1
+VERSION=1.2.3
+VERSION=2.0.0-beta.1
 ```
 
 #### **3. Logs Estruturados Informativos**
@@ -173,38 +173,46 @@ with tracer.start_as_current_span("validate_input"):  # Muito granular
 #### **Desenvolvimento**
 ```python
 # config/development.py
-SOLVIEW_SETTINGS = {
-    "environment": "development",
-    "log_level": "DEBUG",
-    "trace_sampling_rate": 1.0,        # 100% para debug
-    "enable_data_masking": False,      # Dados visíveis
-    "metrics_enabled": True,
-    "export_traces": True,
-}
+from solview import SolviewSettings
+from solview.settings import TracingSettings
+
+settings = SolviewSettings(
+    environment="development",
+    log_level="DEBUG",
+    tracing_settings=TracingSettings(trace_sampling_ratio=1.0),
+    enable_memory_profiling=True,
+    sampling_memory_profiling=1.0,
+)
 ```
 
 #### **Staging**
 ```python
 # config/staging.py
-SOLVIEW_SETTINGS = {
-    "environment": "staging",
-    "log_level": "INFO",
-    "trace_sampling_rate": 0.5,        # 50% para performance
-    "enable_data_masking": True,       # Simular produção
-    "metrics_enabled": True
-}
+from solview import SolviewSettings
+from solview.settings import TracingSettings
+
+settings = SolviewSettings(
+    environment="staging",
+    log_level="INFO",
+    tracing_settings=TracingSettings(trace_sampling_ratio=0.5),
+    enable_memory_profiling=True,
+    sampling_memory_profiling=0.1,
+)
 ```
 
 #### **Produção**
 ```python
 # config/production.py
-SOLVIEW_SETTINGS = {
-    "environment": "production",
-    "log_level": "INFO",
-    "trace_sampling_rate": 0.05,       # 5% para performance
-    "enable_data_masking": True,       # Compliance obrigatório
-    "metrics_enabled": True
-}
+from solview import SolviewSettings
+from solview.settings import TracingSettings
+
+settings = SolviewSettings(
+    environment="production",
+    log_level="INFO",
+    tracing_settings=TracingSettings(trace_sampling_ratio=0.05),
+    enable_memory_profiling=True,
+    sampling_memory_profiling=0.01,
+)
 ```
 
 ### ✅ **Sampling Strategies**

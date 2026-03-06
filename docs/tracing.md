@@ -74,6 +74,7 @@ setup_tracer(
 	•	SQLAlchemy: Tracing de queries SQL com comentários opcionais.
 	•	HTTPX: Requisições HTTP realizadas com HTTPX.
 	•	Logging Python: Integra logs padrão com tracing.
+	•	Redis: Operações Redis sync (`redis`) e async (`redis.asyncio`) via `opentelemetry-instrumentation-redis`.
 
 ⸻
 
@@ -91,6 +92,29 @@ inject_correlation_context(headers)
 # Extrai contexto recebido de uma requisição HTTP
 span = extract_correlation_context(headers)
 ```
+
+⸻
+
+## 🤖 Tracing para MCP (FastMCP)
+
+Para servidores FastMCP (v2+), use o mesmo `setup_tracer()` — basta chamá-lo **sem** o argumento `app`:
+
+```python
+from solview import SolviewSettings, setup_settings, setup_tracer
+from solview.mcp import SolviewMCPMiddleware
+
+setup_settings(SolviewSettings(service_name="meu-mcp-server"))
+setup_tracer()
+```
+
+Quando `app` não é passado (ou é `None`), o `setup_tracer()` configura o TracerProvider e ativa as auto-instrumentações de biblioteca (httpx, requests, asyncpg, sqlalchemy, redis, logging), sem aplicar instrumentação específica de FastAPI.
+
+O `SolviewMCPMiddleware` gera spans para cada operação MCP:
+- `mcp.tool.<nome>` — chamadas de tools
+- `mcp.resource.<uri>` — leituras de resources
+- `mcp.prompt.<nome>` — obtenções de prompts
+
+Para mais detalhes, veja o [Guia MCP](mcp.md).
 
 ⸻
 

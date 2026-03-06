@@ -233,20 +233,11 @@ jobs:
 SERVICE_NAME=minha-api
 ENVIRONMENT=production
 LOG_LEVEL=INFO
-OTLP_ENDPOINT=https://otel-collector.prod.local:4317
-ENABLE_DATA_MASKING=true
-TRACE_SAMPLING_RATE=0.05
-METRICS_ENABLED=true
+OTLP_EXPORTER_HOST=otel-collector.prod.local
 
-# Segurança
-SOLVIEW_ENABLE_SECURITY_MIDDLEWARE=true
-SOLVIEW_API_KEY_HEADER=X-API-Key
-SOLVIEW_CORS_ORIGINS=https://minha-api.com,https://admin.minha-api.com
-
-# Performance
-SOLVIEW_MAX_SPAN_ATTRIBUTES=64
-SOLVIEW_SPAN_EXPORT_BATCH_SIZE=1024
-SOLVIEW_METRICS_EXPORT_INTERVAL_MS=30000
+# Memory profiling
+ENABLE_MEMORY_PROFILING=true
+SAMPLING_MEMORY_PROFILING=0.01
 ```
 
 ### **2. Dockerfile Otimizado para Produção**
@@ -384,13 +375,12 @@ metadata:
   name: solview-config
   namespace: observability
 data:
-  SOLVIEW_SERVICE_NAME: "minha-api"
-  SOLVIEW_ENVIRONMENT: "production"
-  SOLVIEW_LOG_LEVEL: "INFO"
-  SOLVIEW_OTLP_ENDPOINT: "http://otel-collector.observability.svc.cluster.local:4317"
-  SOLVIEW_ENABLE_DATA_MASKING: "true"
-  SOLVIEW_TRACE_SAMPLING_RATE: "0.05"
-  SOLVIEW_METRICS_ENABLED: "true"
+  SERVICE_NAME: "minha-api"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  OTLP_EXPORTER_HOST: "otel-collector.observability.svc.cluster.local"
+  ENABLE_MEMORY_PROFILING: "true"
+  SAMPLING_MEMORY_PROFILING: "0.01"
 ```
 
 ### **2. Deployment da Aplicação**
