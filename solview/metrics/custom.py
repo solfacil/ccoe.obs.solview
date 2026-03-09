@@ -62,7 +62,7 @@ KAFKA_MESSAGE_PROCESSING_DURATION_SECONDS = Histogram(
     "kafka_message_processing_duration_seconds",
     "Duration of Kafka message processing in seconds.",
     ["topic", "handler", "app_name", "status"],
-    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0, 300.0],
 )
 
 KAFKA_CONSUMER_MEMORY_SAMPLES_TOTAL = Counter(
@@ -106,7 +106,7 @@ HTTP_OUTGOING_REQUESTS_DURATION_SECONDS = Histogram(
     "http_outgoing_requests_duration_seconds",
     "Duration of outgoing HTTP requests in seconds.",
     ["method", "url_host", "url_path", "app_name", "status"],
-    buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
+    buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0, 300.0],
 )
 
 HTTP_OUTGOING_REQUESTS_ERRORS_TOTAL = Counter(
@@ -194,7 +194,7 @@ BUSINESS_OPERATIONS_DURATION_SECONDS = Histogram(
     "business_operations_duration_seconds",
     "Duration of business operations in seconds.",
     ["operation", "app_name", "status"],
-    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0, 300.0],
 )
 
 BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL = Counter(
