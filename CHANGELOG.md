@@ -6,7 +6,13 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
-## [3.0.0] - 2026-03-04
+## [2.1.1] - 2026-03-09
+### 🐛 Corrigido
+- **`http_client_instrumentation`** — corrigido bug onde `status="success"` e `status_code="exception"` eram registrados em `http_outgoing_requests_total` mesmo quando a resposta HTTP era 4xx/5xx. O `status` agora considera o status code real da response (>= 400 → `"error"`), e o `status_code` é extraído corretamente tanto do retorno da função quanto de exceções como `httpx.HTTPStatusError`.
+- **`http_client_instrumentation`** — `error_type` no counter `http_outgoing_requests_errors_total` agora usa o nome da classe da exceção (ex: `"TimeoutException"`, `"ConnectError"`) em vez do genérico `"exception"`, permitindo alertas diferenciados por tipo de falha de rede.
+
+
+## [2.1.0] - 2026-03-04
 
 ### ✨ Adicionado
 - **Módulo `solview.mcp`** para observabilidade de servidores FastMCP (v2+)
