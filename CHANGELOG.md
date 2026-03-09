@@ -6,6 +6,12 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.1.2] - 2026-03-09
+### 🔧 Melhorado
+- **Buckets de histograms** — adicionados buckets `15s, 30s, 60s, 120s, 300s` em `http_outgoing_requests_duration_seconds`, `business_operations_duration_seconds` e `kafka_message_processing_duration_seconds`. Corrige P50/P95/P99 que ficavam achatados em 10s quando operações ultrapassavam o último bucket finito.
+
+---
+
 ## [2.1.1] - 2026-03-09
 ### 🐛 Corrigido
 - **`http_client_instrumentation`** — corrigido bug onde `status="success"` e `status_code="exception"` eram registrados em `http_outgoing_requests_total` mesmo quando a resposta HTTP era 4xx/5xx. O `status` agora considera o status code real da response (>= 400 → `"error"`), e o `status_code` é extraído corretamente tanto do retorno da função quanto de exceções como `httpx.HTTPStatusError`.
