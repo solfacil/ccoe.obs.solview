@@ -24,6 +24,28 @@ from solview.solview_logging import get_logger
 logger = get_logger(__name__)
 
 
+def _extract_status_code(result, exc: Exception | None = None) -> int | None:
+    """Extract HTTP status code from a response object or exception.
+
+    Checks, in order:
+    1. ``result.status_code`` (httpx.Response, requests.Response, etc.)
+    2. ``exc.response.status_code`` (httpx.HTTPStatusError, requests.HTTPError)
+    3. ``exc.status_code`` (custom exception with status_code attr)
+
+    Returns None when the status code cannot be determined.
+    """
+    for obj in (result, getattr(exc, "response", None), exc):
+        if obj is None:
+            continue
+        code = getattr(obj, "status_code", None)
+        if code is not None:
+            try:
+                return int(code)
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
 def http_client_instrumentation(operation: str = "request"):
     """
     Decorator to instrument HTTP client operations with tracing and metrics.
@@ -101,6 +123,7 @@ def http_client_instrumentation(operation: str = "request"):
             start_time = time.perf_counter()
             success = False
             result = None
+            caught_exc: Exception | None = None
 
             settings = get_settings()
             app_name = settings.service_name
@@ -136,6 +159,7 @@ def http_client_instrumentation(operation: str = "request"):
                     return result
 
                 except Exception as exc:
+                    caught_exc = exc
                     span.record_exception(exc)
                     span.set_status(
                         Status(StatusCode.ERROR, description=str(exc))
@@ -144,18 +168,23 @@ def http_client_instrumentation(operation: str = "request"):
 
                 finally:
                     duration = time.perf_counter() - start_time
-                    status = "success" if success else "error"
 
-                    response = getattr(self, "_last_response", None)
-                    status_code = (
-                        str(response.status_code)
-                        if response is not None
-                        else "exception"
-                    )
+                    status_code = _extract_status_code(result, caught_exc)
+                    if not success:
+                        status = "error"
+                    elif status_code is not None and status_code >= 400:
+                        status = "error"
+                    else:
+                        status = "success"
+
+                    status_code_str = str(status_code) if status_code is not None else "exception"
+
+                    if recording and status_code is not None:
+                        span.set_attribute("http.response.status_code", status_code)
 
                     HTTP_OUTGOING_REQUESTS_TOTAL.labels(
                         method=method,
-                        status_code=status_code,
+                        status_code=status_code_str,
                         url_host=url_host,
                         url_path=normalized_path,
                         app_name=app_name,
@@ -170,12 +199,19 @@ def http_client_instrumentation(operation: str = "request"):
                         status=status,
                     ).observe(duration)
 
-                    if not success:
+                    if status == "error":
+                        error_type = (
+                            status_code_str
+                            if status_code is not None
+                            else type(caught_exc).__name__
+                            if caught_exc is not None
+                            else "exception"
+                        )
                         HTTP_OUTGOING_REQUESTS_ERRORS_TOTAL.labels(
                             method=method,
                             url_host=url_host,
                             url_path=normalized_path,
-                            error_type="exception",
+                            error_type=error_type,
                             app_name=app_name,
                         ).inc()
 
