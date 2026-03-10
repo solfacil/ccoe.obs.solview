@@ -11,8 +11,10 @@ tanto para FastAPI quanto para FastMCP.
 Instalação: pip install solview[mcp]
 """
 
+from .asgi_middleware import SolviewMCPASGIMiddleware
 from .middleware import SolviewMCPMiddleware
 
 __all__ = [
+    "SolviewMCPASGIMiddleware",
     "SolviewMCPMiddleware",
 ]

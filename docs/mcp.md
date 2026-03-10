@@ -79,6 +79,29 @@ O middleware reutiliza a família de métricas `business_operations_*`, garantin
 
 ---
 
+## 📐 Trace name (span raiz por request)
+
+Em servidores MCP expostos via HTTP (ex.: `POST /mcp`), **sem** um span raiz por request, a primeira operação executada (ex.: Redis SETEX do cache) vira a raiz do trace e o nome do trace fica incorreto (ex.: "mcp-distribution SETEX"). Para que o trace tenha um nome correto por request (ex.: "POST /mcp"):
+
+1. **Use o middleware ASGI** `SolviewMCPASGIMiddleware` como **camada mais externa** do app ASGI, antes de qualquer cache ou lógica de negócio. Assim, cada request HTTP gera um span raiz no formato `METHOD path` (ex.: "POST /mcp") e as operações MCP/Redis ficam como filhos desse span.
+
+2. **Como aplicar**: quando seu framework (ex.: FastMCP) expõe o app ASGI, envolva-o com `SolviewMCPASGIMiddleware` antes de passar para o servidor (ex.: uvicorn):
+
+```python
+from fastmcp import FastMCP
+from solview.mcp import SolviewMCPMiddleware, SolviewMCPASGIMiddleware
+
+mcp = FastMCP("MeuServidor")
+mcp.add_middleware(SolviewMCPMiddleware())
+app = mcp.get_asgi_app()  # ou como seu framework expõe o app
+app = SolviewMCPASGIMiddleware(app)
+uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+**Nota:** Na instrumentação FastAPI (`setup_tracer(app)` com app FastAPI), esse problema **não existe**: o `FastAPIInstrumentor` já cria um span raiz por request HTTP (ex.: "GET /items"), então o nome do trace já reflete o endpoint.
+
+---
+
 ## 🔍 Spans OpenTelemetry
 
 Cada operação MCP gera um span com os seguintes atributos:
@@ -101,10 +124,11 @@ Cada operação MCP gera um span com os seguintes atributos:
 
 ### Nomes dos spans
 
-Os spans seguem o padrão `mcp.<tipo>.<nome>`:
-- `mcp.tool.buscar_cliente`
-- `mcp.resource.file:///data.csv`
-- `mcp.prompt.resumo`
+- **Span raiz por request** (quando se usa `SolviewMCPASGIMiddleware`): `METHOD path` — ex.: `POST /mcp`.
+- **Spans de operação MCP** (gerados por `SolviewMCPMiddleware`): padrão `mcp.<tipo>.<nome>`:
+  - `mcp.tool.buscar_cliente`
+  - `mcp.resource.file:///data.csv`
+  - `mcp.prompt.resumo`
 
 ---
 
@@ -203,6 +227,7 @@ pytest tests/mcp/ --cov=solview.mcp -v
 | `test_middleware.py` | Tool calls, resource reads, prompt gets (success + error) |
 | `test_middleware_memory.py` | Memory profiling habilitado/desabilitado |
 | `test_middleware_tracing.py` | Spans, atributos, status OK/ERROR, exception events |
+| `test_asgi_middleware.py` | Span raiz por request HTTP (POST /mcp), status e exceções |
 | `test_tracing.py` | setup_tracer sem app, instrumentors, unittest mode |
 
 ---
@@ -214,6 +239,7 @@ pytest tests/mcp/ --cov=solview.mcp -v
 3. **Nomeie suas tools de forma descritiva** — o nome vira label `operation` nas métricas
 4. **Configure sampling de memória** adequado ao ambiente (produção: 1%)
 5. **Use `setup_tracer()` sem app** — a mesma função funciona para FastAPI e FastMCP
+6. **Use `SolviewMCPASGIMiddleware`** como camada mais externa do app ASGI para que o trace tenha nome por request (ex.: "POST /mcp") em vez da primeira operação (ex.: Redis SETEX)
 
 ---
 

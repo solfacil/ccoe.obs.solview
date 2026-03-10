@@ -114,7 +114,7 @@ O `SolviewMCPMiddleware` gera spans para cada operação MCP:
 - `mcp.resource.<uri>` — leituras de resources
 - `mcp.prompt.<nome>` — obtenções de prompts
 
-Para mais detalhes, veja o [Guia MCP](mcp.md).
+Para que o **trace** tenha um **span raiz por request** (ex.: "POST /mcp") em vez da primeira operação (ex.: Redis SETEX), use o `SolviewMCPASGIMiddleware` como camada mais externa do app ASGI. Na instrumentação FastAPI esse problema não existe: o FastAPIInstrumentor já cria um span raiz por request. Para mais detalhes, veja o [Guia MCP](mcp.md).
 
 ⸻
 

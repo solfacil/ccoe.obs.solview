@@ -6,6 +6,14 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.1.3] - 2026-03-10
+### 🐛 Corrigido
+- **Trace name (MCP)** — o trace aparecia com nome da primeira operação (ex.: "mcp-distribution SETEX") por não haver span raiz por request HTTP. Adicionado **`SolviewMCPASGIMiddleware`**: use-o como camada mais externa do app ASGI para que cada request tenha um span raiz no formato `METHOD path` (ex.: "POST /mcp") e as operações MCP/Redis fiquem como filhos. Documentação em `docs/mcp.md` e `docs/tracing.md`.
+### 📝 Documentação
+- **FastAPI** — esclarecido que na instrumentação FastAPI esse problema não existe: o `FastAPIInstrumentor` já cria um span raiz por request HTTP.
+
+---
+
 ## [2.1.2] - 2026-03-09
 ### 🔧 Melhorado
 - **Buckets de histograms** — adicionados buckets `15s, 30s, 60s, 120s, 300s` em `http_outgoing_requests_duration_seconds`, `business_operations_duration_seconds` e `kafka_message_processing_duration_seconds`. Corrige P50/P95/P99 que ficavam achatados em 10s quando operações ultrapassavam o último bucket finito.
