@@ -125,7 +125,7 @@ pip install solview[mcp]
 from fastmcp import FastMCP
 from prometheus_client import start_http_server
 from solview import SolviewSettings, setup_settings, setup_logger, setup_tracer
-from solview.mcp import SolviewMCPMiddleware
+from solview.mcp import SolviewMCPMiddleware, SolviewMCPASGIMiddleware
 
 # Configurar Solview
 setup_settings(SolviewSettings(service_name="meu-mcp-server"))
@@ -149,7 +149,7 @@ async def processar_pedido(pedido_id: str) -> str:
 
 O `setup_tracer()` sem app ativa as mesmas auto-instrumentações de biblioteca (httpx, asyncpg, sqlalchemy, requests, redis) sem aplicar instrumentação específica de FastAPI.
 
-Para mais detalhes, veja o [Guia MCP completo](mcp.md).
+Para que o trace tenha um span raiz por request (ex.: "POST /mcp") em vez da primeira operação (ex.: Redis SETEX), envolva o app ASGI com `SolviewMCPASGIMiddleware` antes de subir o servidor (ex.: `app = SolviewMCPASGIMiddleware(mcp.get_asgi_app())`). Veja o [Guia MCP completo](mcp.md).
 
 ---
 
