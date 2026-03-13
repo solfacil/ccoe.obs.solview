@@ -2,7 +2,38 @@
 Custom metrics for Kafka, HTTP client, Redis, and business operations instrumentation.
 """
 
-from prometheus_client import Counter, Histogram
+from prometheus_client import Counter
+from prometheus_client import Histogram
+from prometheus_client import Gauge
+from prometheus_client import Info
+
+# =============================================================================
+# Worker Lifecycle Metrics
+#
+# Estas métricas não existiam antes. Sem elas, você sabe QUANTO o worker
+# processou, mas não sabe SE ele ainda está processando.
+# =============================================================================
+
+WORKER_UP = Gauge(
+    "worker_up",
+    "1 se o worker está rodando, 0 se parou. Útil pra alertas do tipo "
+    "'worker morreu silenciosamente'.",
+    ["app_name"],
+)
+
+WORKER_INFO = Info(
+    "worker",
+    "Metadata estática do worker (versão, nome do serviço). "
+    "Aparece no Grafana pra correlacionar deploys com mudanças de comportamento.",
+)
+
+WORKER_READY = Gauge(
+    "worker_ready",
+    "1 quando o consumer Kafka está conectado e consumindo. "
+    "Diferente de worker_up: o processo pode estar vivo mas o consumer travado.",
+    ["app_name"],
+)
+
 
 # =============================================================================
 # Kafka Producer Metrics
@@ -91,6 +122,39 @@ KAFKA_CONSUMER_MEMORY_BYTES = Histogram(
         1073741824,  # 1 GB
     ],
 )
+
+# --- Consumer: Métricas de resiliência ---
+
+KAFKA_CONSUMER_LAST_SUCCESS_TIMESTAMP = Gauge(
+    "kafka_consumer_last_success_timestamp",
+    "Unix timestamp da última mensagem processada com sucesso. "
+    "Alerta: time() - esta_metrica > 300 significa 5 min sem processar nada.",
+    ["topic", "app_name"],
+)
+
+KAFKA_CONSUMER_CONSECUTIVE_ERRORS = Gauge(
+    "kafka_consumer_consecutive_errors",
+    "Número de erros consecutivos sem um sucesso no meio. "
+    "Reseta pra 0 a cada sucesso. Diferente do errors_total (que só sobe), "
+    "este mostra se o worker está num loop de falha AGORA.",
+    ["topic", "app_name"],
+)
+
+KAFKA_CONSUMER_LAG = Gauge(
+    "kafka_consumer_lag",
+    "Consumer lag por tópico e partição. Mostra quantas mensagens estão "
+    "pendentes. Se só cresce, o worker não está dando conta.",
+    ["topic", "partition", "app_name"],
+)
+
+KAFKA_CONSUMER_REBALANCES_TOTAL = Counter(
+    "kafka_consumer_rebalances_total",
+    "Total de rebalances do consumer group. Rebalances frequentes indicam "
+    "instabilidade — pods reiniciando, timeouts, ou consumers lentos.",
+    ["app_name"],
+)
+
+
 
 # =============================================================================
 # HTTP Client Metrics
