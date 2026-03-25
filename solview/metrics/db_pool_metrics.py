@@ -74,4 +74,6 @@ def setup_db_pool_metrics(engine):
         unit="{connections}",
     )
 
-    _logger.info("Métricas de connection pool (db_pool_active_connections, db_pool_idle_connections) registradas.")
+    _logger.info(
+        "Métricas de connection pool (db_pool_active_connections, db_pool_idle_connections) registradas."
+    )

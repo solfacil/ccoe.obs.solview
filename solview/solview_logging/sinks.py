@@ -1,6 +1,5 @@
 import sys
 import orjson
-from datetime import timedelta
 from typing import Any, TextIO
 from loguru._handler import Message
 from .masking import DataMasker
@@ -10,6 +9,7 @@ def _get_service_labels() -> dict:
     """Obtém labels de serviço (lazy) para não exigir setup_settings() no import."""
     try:
         from solview.config import get_settings
+
         s = get_settings()
         return {
             "environment": s.environment,
@@ -27,20 +27,21 @@ def _get_service_labels() -> dict:
             "version": "0.0.0",
         }
 
+
 def _mask_dict_values(data: dict, masker: DataMasker) -> dict:
     """
     Recursively mask string values in a dictionary.
-    
+
     Args:
         data: Dictionary to mask
         masker: DataMasker instance
-        
+
     Returns:
         Dictionary with masked values
     """
     if masker.ignore_mask:
         return data
-    
+
     masked = {}
     for key, value in data.items():
         if isinstance(value, str):
@@ -57,9 +58,7 @@ def _mask_dict_values(data: dict, masker: DataMasker) -> dict:
     return masked
 
 
-async def ecs_sink(
-    message: Message, stream: TextIO = sys.stdout
-) -> None:
+async def ecs_sink(message: Message, stream: TextIO = sys.stdout) -> None:
     """
     Emit log estruturado no padrão ECS (Elastic Common Schema), compatível com Elastic e Loki.
 

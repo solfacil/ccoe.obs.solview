@@ -1,5 +1,9 @@
-from solview.tracing.propagators import inject_correlation_context, extract_correlation_context
+from solview.tracing.propagators import (
+    inject_correlation_context,
+    extract_correlation_context,
+)
 from opentelemetry.trace import get_tracer
+
 
 def test_inject_correlation_context():
     tracer = get_tracer(__name__)
@@ -8,6 +12,7 @@ def test_inject_correlation_context():
         inject_correlation_context(headers)
         # Deve injetar traceparent
         assert any(k.lower() == "traceparent" for k in headers.keys())
+
 
 def test_extract_correlation_context():
     headers = {}

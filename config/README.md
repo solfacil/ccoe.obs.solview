@@ -34,5 +34,3 @@ cp config/solview.env.example .env
 - `SOLVIEW_METRICS_PATH`: Path for metrics endpoint.
 - `KUBERNETES_NAMESPACE`/`KUBERNETES_NODE_NAME`: Optional runtime metadata in clusters.
 - `PYTHON_ENV`: When set to `unittest`, enables a console exporter safe for pytest.
-
-

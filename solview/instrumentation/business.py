@@ -1,7 +1,5 @@
 """Business operations instrumentation decorators combining OpenTelemetry tracing and Prometheus metrics."""
 
-import asyncio
-import inspect
 import random
 import time
 from collections.abc import Callable
@@ -40,14 +38,14 @@ def business_operation_instrumentation(operation: str):
         ):
             if not profile_memory:
                 return
-            
+
             BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL.labels(
                 operation=operation,
                 app_name=app_name,
             ).inc()
 
             delta = memory_profiler.get_memory_delta()
-            
+
             if delta is None:
                 if recording:
                     span.set_attribute("memory.sampled", True)
@@ -66,13 +64,13 @@ def business_operation_instrumentation(operation: str):
                 app_name=app_name,
                 status=status,
             ).observe(delta)
-            
+
             if recording:
                 span.set_attribute("memory.delta_bytes", delta)
                 span.set_attribute("memory.sampled", True)
                 span.set_attribute("memory.delta_ignored", False)
                 span.set_attribute("memory.delta_available", True)
-                
+
         @wraps(func)
         async def wrapper(*args, **kwargs):
             tracer = trace.get_tracer(f"business.{func.__module__}")
@@ -88,9 +86,7 @@ def business_operation_instrumentation(operation: str):
             )
             memory_profiler = MemoryProfiler(enabled=profile_memory)
 
-            with tracer.start_as_current_span(
-                f"business.{operation}"
-            ) as span:
+            with tracer.start_as_current_span(f"business.{operation}") as span:
                 recording = span.is_recording()
 
                 if recording:
@@ -106,11 +102,9 @@ def business_operation_instrumentation(operation: str):
 
                 except Exception as exc:
                     span.record_exception(exc)
-                    span.set_status(
-                        Status(StatusCode.ERROR, description=str(exc))
-                    )
+                    span.set_status(Status(StatusCode.ERROR, description=str(exc)))
                     raise
-                    
+
                 finally:
                     duration = time.perf_counter() - start_time
                     status = "success" if success else "error"
@@ -136,7 +130,7 @@ def business_operation_instrumentation(operation: str):
                         operation=operation,
                         app_name=app_name,
                     )
+
         return wrapper
 
     return decorator
-

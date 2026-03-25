@@ -36,7 +36,6 @@ def redis_settings_with_memory():
 
 
 class TestRedisClientInstrumentationSuccess:
-
     @pytest.mark.asyncio
     async def test_returns_result(self):
         @redis_client_instrumentation(command="get")
@@ -78,7 +77,6 @@ class TestRedisClientInstrumentationSuccess:
 
 
 class TestRedisClientInstrumentationError:
-
     @pytest.mark.asyncio
     async def test_propagates_exception(self):
         @redis_client_instrumentation(command="get_err")
@@ -95,7 +93,9 @@ class TestRedisClientInstrumentationError:
             raise TimeoutError("timeout")
 
         error_metric = REDIS_OPERATIONS_ERRORS_TOTAL.labels(
-            command="get_err_counter", error_type="TimeoutError", app_name="test-redis-app"
+            command="get_err_counter",
+            error_type="TimeoutError",
+            app_name="test-redis-app",
         )
         before = error_metric._value.get()
 
@@ -138,7 +138,6 @@ class TestRedisClientInstrumentationError:
 
 
 class TestRedisMemoryProfiling:
-
     @pytest.mark.asyncio
     async def test_memory_samples_incremented(self, redis_settings_with_memory):
         @redis_client_instrumentation(command="get_mem")
@@ -171,7 +170,6 @@ class TestRedisMemoryProfiling:
 
 
 class TestRedisMultipleCommands:
-
     @pytest.mark.asyncio
     async def test_different_commands_have_separate_metrics(self):
         @redis_client_instrumentation(command="set")

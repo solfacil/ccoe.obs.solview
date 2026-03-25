@@ -5,7 +5,7 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
-  
+
   # Prometheus receiver for self-monitoring
   prometheus:
     config:
@@ -64,7 +64,7 @@ exporters:
   otlphttp/loki:
     endpoint: http://loki:3100/otlp
 
-  # Tempo exporter for traces  
+  # Tempo exporter for traces
   otlp/tempo:
     endpoint: http://tempo:4317
     tls:
@@ -78,7 +78,7 @@ exporters:
 
 service:
   extensions: []
-  
+
   pipelines:
     # Traces pipeline
     traces:
@@ -101,4 +101,3 @@ service:
   telemetry:
     logs:
       level: "info"
-

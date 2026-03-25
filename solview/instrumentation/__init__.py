@@ -2,7 +2,7 @@
 solview.instrumentation
 
 Módulo de instrumentação customizada combinando OpenTelemetry tracing e métricas Prometheus.
-Fornece decoradores para instrumentar Kafka, HTTP clients, Redis e operações de negócio.
+Fornece decoradores para instrumentar Kafka, HTTP clients, Redis, RabbitMQ e operações de negócio.
 """
 
 from .kafka import (
@@ -12,6 +12,10 @@ from .kafka import (
 from .http import http_client_instrumentation
 from .business import business_operation_instrumentation
 from .redis import redis_client_instrumentation
+from .rabbitmq import (
+    rabbitmq_publisher_instrumentation,
+    rabbitmq_consumer_instrumentation,
+)
 
 __all__ = [
     "kafka_producer_instrumentation",
@@ -19,5 +23,6 @@ __all__ = [
     "http_client_instrumentation",
     "business_operation_instrumentation",
     "redis_client_instrumentation",
+    "rabbitmq_publisher_instrumentation",
+    "rabbitmq_consumer_instrumentation",
 ]
-

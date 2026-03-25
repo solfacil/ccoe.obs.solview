@@ -17,6 +17,7 @@ def test_integration_settings_logger_sink(monkeypatch):
 
     # Sempre recarregue o módulo de settings após monkeypatch!
     import solview.settings
+
     importlib.reload(solview.settings)
     from solview.settings import SolviewSettings
 
@@ -31,18 +32,20 @@ def test_integration_settings_logger_sink(monkeypatch):
 
     # Registrar settings para setup_logger (usa get_settings() internamente)
     from solview.config import setup_settings
+
     setup_settings(s)
 
     # 2. Gera instance de LoggingSettings (para o sink custom do teste; mesmo conteúdo que s)
     from solview.solview_logging.settings import LoggingSettings
     from solview.solview_logging.core import setup_logger
+
     log_settings = LoggingSettings(
         log_level=s.log_level,
         environment=s.environment,
         service_name=s.service_name,
         domain=s.domain,
         subdomain=s.subdomain,
-        version=s.version
+        version=s.version,
     )
 
     # 3. Prepara sink custom (BytesIO)
@@ -51,10 +54,13 @@ def test_integration_settings_logger_sink(monkeypatch):
 
     class MemorySink:
         """Sink síncrono para coletar logs em memória (para integração)."""
+
         def __init__(self):
             self.buf = io.BytesIO()
+
         def write(self, msg):
             self.buf.write(msg.encode("utf-8"))
+
         def flush(self):
             pass
 
@@ -117,9 +123,16 @@ def test_integration_settings_logger_sink(monkeypatch):
 
     # Inicializa o logger do Solview (usa get_settings() = s) e injeta o sink síncrono do teste
     setup_logger()
-    from loguru import logger as _logger  # acesso direto para adicionar sink custom só no teste
+    from loguru import (
+        logger as _logger,
+    )  # acesso direto para adicionar sink custom só no teste
+
     _logger.remove()
-    _logger.add(create_sync_sink(log_settings, mem_sink), level=log_settings.log_level, enqueue=False)
+    _logger.add(
+        create_sync_sink(log_settings, mem_sink),
+        level=log_settings.log_level,
+        enqueue=False,
+    )
 
     # 5. Emite um log completo
     logger = get_logger(__name__)

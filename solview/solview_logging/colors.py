@@ -6,6 +6,7 @@ Provides ANSI color codes and colored formatting for log output.
 
 class LogColors:
     """ANSI color codes for terminal output."""
+
     RESET = "\033[0m"
     GREEN = "\033[92m"
     RED = "\033[91m"
@@ -17,10 +18,10 @@ class LogColors:
 def get_color_for_level(level: str) -> str:
     """
     Get color code for a log level.
-    
+
     Args:
         level: Log level name (e.g., "INFO", "ERROR", "DEBUG")
-        
+
     Returns:
         ANSI color code string
     """
@@ -34,4 +35,3 @@ def get_color_for_level(level: str) -> str:
         "CRITICAL": LogColors.RED,
     }
     return colors.get(level.upper(), LogColors.RESET)
-

@@ -288,7 +288,7 @@ settings = SolviewSettings(
 
 ---
 
-*"A observabilidade não é apenas sobre monitorar sistemas, é sobre entender o negócio através da tecnologia."*  
+*"A observabilidade não é apenas sobre monitorar sistemas, é sobre entender o negócio através da tecnologia."*
 **- Centro de Excelência em Observabilidade, Solfacil**
 
 </div>

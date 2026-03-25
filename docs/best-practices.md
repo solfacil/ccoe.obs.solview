@@ -20,18 +20,18 @@ from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_resp
 def create_app() -> FastAPI:
     # Configuração centralizada
     settings = SolviewSettings()
-    
+
     app = FastAPI(
         title=settings.service_name,
         version=settings.service_version
     )
-    
+
     # Setup obrigatório em ordem
     setup_logger(settings)
     setup_tracer(settings, app)
     app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
     app.add_route("/metrics", prometheus_metrics_response)
-    
+
     return app
 ```
 
@@ -110,7 +110,7 @@ with tracer.start_as_current_span("process_payment") as span:
     span.set_attribute("payment.amount", amount)
     span.set_attribute("payment.gateway", "stripe")
     span.set_attribute("user.id", user_id)
-    
+
     try:
         result = await payment_gateway.process(payment)
         span.set_attribute("transaction.id", result.transaction_id)
@@ -224,15 +224,15 @@ class BusinessAwareSampler:
         # Sempre sampliar erros
         if attributes.get("error") == "true":
             return True
-        
+
         # Sampling reduzido para health checks
         if span_name in ["/health", "/metrics", "/ready"]:
             return trace_id.endswith("0")  # 1 em 16
-        
+
         # Sampling alto para operações críticas
         if span_name.startswith("payment_") or span_name.startswith("order_"):
             return trace_id.endswith(("0", "1", "2", "3"))  # 1 em 4
-        
+
         # Sampling padrão
         return trace_id.endswith("0")  # 1 em 16
 ```
@@ -277,7 +277,7 @@ async def create_user(user: UserRequest):
         "document_type": user.document_type,
         # Não incluir: password, document_number, etc.
     }
-    
+
     logger.info("Creating user", user_data=user_for_log)
 ```
 
@@ -308,7 +308,7 @@ http_requests = Counter(
 
 # endpoint_pattern em vez de endpoint específico
 # /users/123 → /users/{id}
-# status_class em vez de status específico  
+# status_class em vez de status específico
 # 404 → 4xx
 ```
 
@@ -321,10 +321,10 @@ settings = SolviewSettings(
     span_export_batch_size=1024,       # Padrão: 512
     span_export_timeout_ms=30000,      # Padrão: 30s
     span_export_max_queue_size=4096,   # Padrão: 2048
-    
+
     # Sampling otimizado
     trace_sampling_rate=0.05,          # 5% em produção
-    
+
     # Limites de spans
     max_span_attributes=32,             # Padrão: 128
     max_span_events=32,                 # Padrão: 128
@@ -339,15 +339,15 @@ async def process_order(order: Order):
     # Instrumentação síncrona rápida
     with tracer.start_as_current_span("process_order") as span:
         span.set_attribute("order.id", order.id)
-        
+
         # Processamento async não bloqueia
         result = await heavy_processing(order)
-        
+
         # Log async se necessário
         asyncio.create_task(
             log_order_metrics(order, result)
         )
-        
+
         return result
 ```
 
@@ -370,15 +370,15 @@ groups:
             sum(rate(http_responses_total[5m]))
           ) < 0.995  # 99.5% SLO
         for: 2m
-        
+
       # SLI: Latency
       - alert: ServiceLatencyHigh
         expr: |
-          histogram_quantile(0.95, 
+          histogram_quantile(0.95,
             sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
           ) > 0.5  # 500ms SLO
         for: 5m
-        
+
       # SLI: Error Rate
       - alert: ServiceErrorRateHigh
         expr: |
@@ -405,7 +405,7 @@ groups:
         ]
       },
       {
-        "title": "SLI - Error Rate", 
+        "title": "SLI - Error Rate",
         "targets": [
           {
             "expr": "sum(rate(http_responses_total{service_name=\"$service\",status_code=~\"5..\"}[5m])) / sum(rate(http_responses_total{service_name=\"$service\"}[5m])) * 100",
@@ -456,7 +456,7 @@ Error rate above 1% for more than 1 minute
 
 ### Escalation
 - L1: Check dashboard and recent changes
-- L2: Deep dive into traces and logs  
+- L2: Deep dive into traces and logs
 - L3: Code-level investigation
 ```
 
@@ -471,18 +471,18 @@ Error rate above 1% for more than 1 minute
 class BusinessMetrics:
     """
     Business-specific metrics for the payment service.
-    
+
     Metrics:
         payments_processed_total: Total number of payments processed
             Labels: gateway, currency, status
-            
-        payment_amount_histogram: Distribution of payment amounts  
+
+        payment_amount_histogram: Distribution of payment amounts
             Labels: currency
             Buckets: [10, 50, 100, 500, 1000, 5000, 10000]
-            
+
         payment_processing_duration: Time to process payments
             Labels: gateway
-            
+
     Usage:
         payments_processed.labels(gateway='stripe', currency='BRL', status='success').inc()
         payment_amount.labels(currency='BRL').observe(299.90)
@@ -523,7 +523,7 @@ class BusinessMetrics:
 # Signal-to-Noise: Logs úteis vs total
 (count(rate(log_entries{level!="debug"}[5m])) / count(rate(log_entries[5m]))) * 100
 
-# Trace Coverage: % de requests trackeados  
+# Trace Coverage: % de requests trackeados
 (sum(rate(traces_received_total[5m])) / sum(rate(http_requests_total[5m]))) * 100
 
 # Error Signal Quality: % de erros capturados
@@ -568,7 +568,7 @@ user_requests = Counter('requests_by_user', ['user_id'])  # Milhões de users
 # ❌ RUIM: Métricas temporárias
 debug_counter = Counter('debug_xyz_temp')  # Esqueceu de remover
 
-# ❌ RUIM: Labels inconsistentes  
+# ❌ RUIM: Labels inconsistentes
 requests_counter.labels(method='GET', endpoint='/users')
 requests_counter.labels(http_method='POST', url='/orders')  # Inconsistente
 ```
@@ -609,7 +609,7 @@ with tracer.start_as_current_span("process"):  # Nome genérico
 
 ### Setup
 - [ ] Solview setup seguindo padrão da empresa
-- [ ] Configurações por ambiente  
+- [ ] Configurações por ambiente
 - [ ] Middleware em ordem correta
 
 ### Logging
@@ -617,7 +617,7 @@ with tracer.start_as_current_span("process"):  # Nome genérico
 - [ ] Sem dados sensíveis
 - [ ] Níveis apropriados (INFO/ERROR/DEBUG)
 
-### Metrics  
+### Metrics
 - [ ] Labels com cardinalidade controlada
 - [ ] Nomes padronizados
 - [ ] Business metrics quando aplicável

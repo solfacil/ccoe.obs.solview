@@ -65,7 +65,7 @@ def http_client_instrumentation(operation: str = "request"):
         ):
             if not profile_memory:
                 return
-            
+
             HTTP_OUTGOING_REQUESTS_MEMORY_SAMPLES_TOTAL.labels(
                 method=method,
                 url_host=url_host,
@@ -74,7 +74,7 @@ def http_client_instrumentation(operation: str = "request"):
             ).inc()
 
             delta = memory_profiler.get_memory_delta()
-            
+
             if delta is None:
                 if recording:
                     span.set_attribute("memory.sampled", True)
@@ -87,7 +87,7 @@ def http_client_instrumentation(operation: str = "request"):
                     span.set_attribute("memory.delta_bytes", delta)
                     span.set_attribute("memory.delta_ignored", True)
                 return
-            
+
             HTTP_OUTGOING_REQUESTS_MEMORY_BYTES.labels(
                 method=method,
                 url_host=url_host,
@@ -95,13 +95,13 @@ def http_client_instrumentation(operation: str = "request"):
                 app_name=app_name,
                 status=status,
             ).observe(delta)
-            
+
             if recording:
                 span.set_attribute("memory.delta_bytes", delta)
                 span.set_attribute("memory.sampled", True)
                 span.set_attribute("memory.delta_ignored", False)
                 span.set_attribute("memory.delta_available", True)
-        
+
         @wraps(func)
         async def wrapper(*args, **kwargs):
             sig = inspect.signature(func)
@@ -161,9 +161,7 @@ def http_client_instrumentation(operation: str = "request"):
                 except Exception as exc:
                     caught_exc = exc
                     span.record_exception(exc)
-                    span.set_status(
-                        Status(StatusCode.ERROR, description=str(exc))
-                    )
+                    span.set_status(Status(StatusCode.ERROR, description=str(exc)))
                     raise
 
                 finally:
@@ -177,7 +175,9 @@ def http_client_instrumentation(operation: str = "request"):
                     else:
                         status = "success"
 
-                    status_code_str = str(status_code) if status_code is not None else "exception"
+                    status_code_str = (
+                        str(status_code) if status_code is not None else "exception"
+                    )
 
                     if recording and status_code is not None:
                         span.set_attribute("http.response.status_code", status_code)
@@ -226,6 +226,7 @@ def http_client_instrumentation(operation: str = "request"):
                         url_path=normalized_path,
                         app_name=app_name,
                     )
-        return wrapper
-    return decorator
 
+        return wrapper
+
+    return decorator

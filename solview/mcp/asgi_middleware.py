@@ -61,7 +61,9 @@ class SolviewMCPASGIMiddleware:
         uvicorn.run(app, host="0.0.0.0", port=8000)
     """
 
-    def __init__(self, app: typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]) -> None:
+    def __init__(
+        self, app: typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
+    ) -> None:
         self.app = app
         self._tracer = trace.get_tracer("solview.mcp.asgi", "1.0.0")
 
@@ -89,7 +91,9 @@ class SolviewMCPASGIMiddleware:
                 if span.is_recording():
                     span.set_attribute(HTTP_RESPONSE_STATUS_CODE, status_code)
                 if status_code >= 400:
-                    span.set_status(Status(StatusCode.ERROR, description=f"HTTP {status_code}"))
+                    span.set_status(
+                        Status(StatusCode.ERROR, description=f"HTTP {status_code}")
+                    )
                 else:
                     span.set_status(Status(StatusCode.OK))
             await send(message)

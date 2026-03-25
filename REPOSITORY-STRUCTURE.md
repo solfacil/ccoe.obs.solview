@@ -316,7 +316,7 @@ ccoe.obs.solview/
 
 ---
 
-*Desenvolvido com excelência técnica e atenção aos detalhes*  
+*Desenvolvido com excelência técnica e atenção aos detalhes*
 **Centro de Excelência em Observabilidade - Solfacil**
 
 </div>

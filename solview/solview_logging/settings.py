@@ -2,6 +2,7 @@
 Configuração do módulo de logging do Solview.
 Expõe LoggingSettings com os campos usados por setup_logger e pelos sinks (service name, environment, etc.).
 """
+
 import os
 from pydantic import BaseModel
 
@@ -11,6 +12,7 @@ class LoggingSettings(BaseModel):
     Configuração usada pelo logging estruturado do Solview.
     Campos compatíveis com SolviewSettings para uso em sinks e setup_logger.
     """
+
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     environment: str = os.getenv("ENVIRONMENT", "dev")
     service_name: str = os.getenv("SERVICE_NAME", "app")

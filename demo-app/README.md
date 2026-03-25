@@ -289,4 +289,3 @@ docker-compose up -d
 ## 📝 License
 
 Este projeto é parte do Solview Observability Stack - CCOE Platform Team.
-

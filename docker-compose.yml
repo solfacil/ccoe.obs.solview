@@ -4,7 +4,7 @@ services:
   # =============================================================================
   # 📊 OBSERVABILITY STACK (LGTM)
   # =============================================================================
-  
+
   # Prometheus (Metrics)
   prometheus:
     image: prom/prometheus:v3.5.0
@@ -79,7 +79,7 @@ services:
     volumes:
       - ./docker/tempo/tempo.yml:/etc/tempo/tempo.yaml
       - tempo_data:/var/tempo
-    command: 
+    command:
       - "-config.file=/etc/tempo/tempo.yaml"
     networks:
       - solview-network
@@ -147,15 +147,15 @@ services:
       - SOLVIEW_VERSION=1.0.0
       - SOLVIEW_ENVIRONMENT=development
       - SOLVIEW_LOG_LEVEL=INFO
-      
+
       # OpenTelemetry Configuration
       - OTEL_ENABLED=true
       - OTEL_SERVICE_NAME=solview-demo-app
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_RESOURCE_ATTRIBUTES=service.name=solview-demo-app,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=solview-demo-app
       - SERVICE_GRAPH_ENABLED=true
-      
-      # Security Configuration  
+
+      # Security Configuration
       - CORS_ORIGINS=http://localhost:3000,http://localhost:9090
     networks:
       - solview-network
@@ -194,11 +194,11 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
       - PORT=8001
-      
+
       # Demo App Integration (Service Communication)
       - DEMO_APP_URL=http://solview-demo:8000
       - DEMO_APP_TIMEOUT=30
-      
+
       # OpenTelemetry Configuration (Production Ready)
       - OTEL_ENABLED=true
       - OTEL_SERVICE_NAME=backend-processor
@@ -206,15 +206,15 @@ services:
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_RESOURCE_ATTRIBUTES=service.name=backend-processor,service.version=1.0.0,service.namespace=solview,deployment.environment=development,app=backend-processor
       - SERVICE_GRAPH_ENABLED=true
-      
+
       # Observability Features
       - METRICS_ENABLED=true
       - TRACING_ENABLED=true
       - LOGGING_ENABLED=true
-      
-      # Security Configuration  
+
+      # Security Configuration
       - CORS_ORIGINS=http://localhost:3000,http://localhost:9090
-      
+
       # Processing Configuration
       - BATCH_SIZE=10
       - PROCESSING_INTERVAL_SECONDS=30
@@ -236,7 +236,7 @@ services:
       - tempo
 
   # =============================================================================
-  # 📊 LOG AGGREGATION 
+  # 📊 LOG AGGREGATION
   # =============================================================================
 
   # Promtail - Log shipper for Loki
@@ -267,7 +267,7 @@ services:
   log-generator:
     image: mingrammer/flog:0.4.4
     container_name: solview-log-generator
-    command: 
+    command:
       - -f
       - json
       - -t

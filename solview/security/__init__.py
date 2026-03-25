@@ -19,4 +19,3 @@ __all__ = [
     "mask_sensitive_data",
     "mask_dict",
 ]
-

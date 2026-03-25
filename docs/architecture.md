@@ -11,37 +11,37 @@ graph TB
         Solview[Solview Library]
         App --> Solview
     end
-    
+
     subgraph "Coleta (Collection Layer)"
         OTel[OpenTelemetry Collector]
         Solview --> |OTLP gRPC/HTTP| OTel
     end
-    
+
     subgraph "Armazenamento (Storage Layer)"
         Prometheus[Prometheus<br/>📊 Metrics]
-        Loki[Loki<br/>📝 Logs] 
+        Loki[Loki<br/>📝 Logs]
         Tempo[Tempo<br/>🔍 Traces]
-        
+
         OTel --> |Remote Write| Prometheus
         OTel --> |Loki API| Loki
         OTel --> |OTLP| Tempo
     end
-    
+
     subgraph "Visualização (Visualization Layer)"
         Grafana[Grafana<br/>📊 Dashboards]
         ServiceGraph[Service Graph<br/>🗺️ Topology]
-        
+
         Prometheus --> Grafana
         Loki --> Grafana
         Tempo --> Grafana
         Tempo --> ServiceGraph
     end
-    
+
     subgraph "Correlação (Correlation Layer)"
         TraceToMetrics[Trace → Metrics]
         TraceToLogs[Trace → Logs]
         MetricsToTraces[Metrics → Traces]
-        
+
         Grafana --> TraceToMetrics
         Grafana --> TraceToLogs
         Grafana --> MetricsToTraces
@@ -101,7 +101,7 @@ __version__ = "2.0.1"
 __all__ = [
     "SolviewSettings",
     "setup_logger",
-    "get_logger", 
+    "get_logger",
     "setup_tracer",
     "get_tracer",
     "get_metrics_registry",
@@ -122,34 +122,34 @@ graph LR
         Request[HTTP Request]
         Middleware[Solview Middleware]
         Handler[Route Handler]
-        
+
         Request --> Middleware
         Middleware --> Handler
         Handler --> Middleware
     end
-    
+
     subgraph "Métricas Core"
         HTTPMetrics[HTTP Metrics]
         SystemMetrics[System Metrics]
         CustomMetrics[Custom Metrics]
-        
+
         Middleware --> HTTPMetrics
         Middleware --> SystemMetrics
         Handler --> CustomMetrics
     end
-    
+
     subgraph "Registry"
         PrometheusRegistry[Prometheus Registry]
-        
+
         HTTPMetrics --> PrometheusRegistry
         SystemMetrics --> PrometheusRegistry
         CustomMetrics --> PrometheusRegistry
     end
-    
+
     subgraph "Export"
         MetricsEndpoint[/metrics Endpoint]
         RemoteWrite[Remote Write]
-        
+
         PrometheusRegistry --> MetricsEndpoint
         PrometheusRegistry --> RemoteWrite
     end
@@ -164,7 +164,7 @@ from prometheus_client import Counter, Histogram, Gauge, Info
 class SolviewMetrics:
     def __init__(self, service_name: str, registry):
         self.registry = registry
-        
+
         # HTTP Metrics (compatíveis com OpenTelemetry)
         self.http_requests_total = Counter(
             'http_requests_total',
@@ -172,7 +172,7 @@ class SolviewMetrics:
             ['method', 'endpoint', 'status_code', 'service_name'],
             registry=registry
         )
-        
+
         self.http_request_duration_seconds = Histogram(
             'http_request_duration_seconds',
             'HTTP request duration',
@@ -180,14 +180,14 @@ class SolviewMetrics:
             buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
             registry=registry
         )
-        
+
         self.http_responses_total = Counter(
             'http_responses_total',
             'Total HTTP responses',
             ['method', 'endpoint', 'status_code', 'service_name'],
             registry=registry
         )
-        
+
         # System Metrics
         self.process_cpu_usage = Gauge(
             'process_cpu_usage_percent',
@@ -195,21 +195,21 @@ class SolviewMetrics:
             ['service_name'],
             registry=registry
         )
-        
+
         self.process_memory_usage = Gauge(
             'process_memory_usage_bytes',
             'Process memory usage',
             ['service_name'],
             registry=registry
         )
-        
+
         # Service Info
         self.service_info = Info(
             'service_info',
             'Service information',
             registry=registry
         )
-        
+
         # Inicializar info
         self.service_info.info({
             'name': service_name,
@@ -232,27 +232,27 @@ graph TB
         Logger[Solview Logger]
         Code --> Logger
     end
-    
+
     subgraph "Processing"
         Formatter[JSON Formatter]
         Enricher[Context Enricher]
         Masker[Data Masker]
-        
+
         Logger --> Formatter
         Formatter --> Enricher
         Enricher --> Masker
     end
-    
+
     subgraph "Sinks"
         Console[Console Output]
         File[File Output]
         OTLP[OTLP Exporter]
-        
+
         Masker --> Console
         Masker --> File
         Masker --> OTLP
     end
-    
+
     subgraph "Storage"
         Loki[Loki]
         OTLP --> Loki
@@ -292,7 +292,7 @@ loguru_logger = get_logger(__name__)
 
 def setup_logger(settings: SolviewSettings):
     """Setup structured logging with OpenTelemetry integration"""
-    
+
     # Configurar processadores structlog
     processors = [
         structlog.stdlib.filter_by_level,
@@ -309,7 +309,7 @@ def setup_logger(settings: SolviewSettings):
         # JSON output
         structlog.processors.JSONRenderer()
     ]
-    
+
     structlog.configure(
         processors=processors,
         wrapper_class=structlog.stdlib.BoundLogger,
@@ -329,7 +329,7 @@ graph TB
     subgraph "Instrumentação"
         AutoInstr[Auto Instrumentation]
         ManualInstr[Manual Instrumentation]
-        
+
         subgraph "Auto Instrumentation"
             FastAPIInstr[FastAPI]
             HTTPXInstr[HTTPX]
@@ -337,30 +337,30 @@ graph TB
             PsycopgInstr[Psycopg]
         end
     end
-    
+
     subgraph "Tracing Pipeline"
         SpanProcessor[Span Processor]
         Sampler[Sampler]
         ResourceDetector[Resource Detector]
-        
+
         AutoInstr --> SpanProcessor
         ManualInstr --> SpanProcessor
         SpanProcessor --> Sampler
         Sampler --> ResourceDetector
     end
-    
+
     subgraph "Export"
         BatchExporter[Batch Exporter]
         OTLPExporter[OTLP Exporter]
-        
+
         ResourceDetector --> BatchExporter
         BatchExporter --> OTLPExporter
     end
-    
+
     subgraph "Backend"
         OTelCollector[OTel Collector]
         Tempo[Tempo]
-        
+
         OTLPExporter --> OTelCollector
         OTelCollector --> Tempo
     end
@@ -379,7 +379,7 @@ from opentelemetry.sdk.resources import Resource
 
 def setup_tracer(settings: SolviewSettings, app: FastAPI = None):
     """Setup OpenTelemetry tracing"""
-    
+
     # Resource com informações do serviço
     resource = Resource.create({
         "service.name": settings.service_name,
@@ -389,19 +389,19 @@ def setup_tracer(settings: SolviewSettings, app: FastAPI = None):
         "solview.version": __version__,
         "solview.stack": "fastapi+solview"
     })
-    
+
     # TracerProvider
     provider = TracerProvider(
         resource=resource,
         sampler=trace.sampling.TraceIdRatioBased(settings.trace_sampling_rate)
     )
-    
+
     # OTLP Exporter
     otlp_exporter = OTLPSpanExporter(
         endpoint=settings.otlp_endpoint,
         insecure=not settings.otlp_exporter_http_encrypted
     )
-    
+
     # Batch Processor
     span_processor = BatchSpanProcessor(
         otlp_exporter,
@@ -409,10 +409,10 @@ def setup_tracer(settings: SolviewSettings, app: FastAPI = None):
         max_export_batch_size=512,
         export_timeout_millis=30000
     )
-    
+
     provider.add_span_processor(span_processor)
     trace.set_tracer_provider(provider)
-    
+
     # Auto-instrumentação
     if app:
         FastAPIInstrumentor.instrument_app(
@@ -420,7 +420,7 @@ def setup_tracer(settings: SolviewSettings, app: FastAPI = None):
             excluded_urls=settings.excluded_urls,
             tracer_provider=provider
         )
-    
+
     return trace.get_tracer(__name__)
 ```
 
@@ -446,7 +446,7 @@ scrape_configs:
       - targets: ['solview-demo:8000']
     metrics_path: '/metrics'
     scrape_interval: 5s
-    
+
   - job_name: 'backend-processor'
     static_configs:
       - targets: ['backend-processor:8001']
@@ -472,7 +472,7 @@ groups:
         annotations:
           summary: "High error rate detected"
           description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.service_name }}"
-      
+
       - alert: HighLatency
         expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
         for: 5m
@@ -643,12 +643,12 @@ class DataMasker:
         self.sensitive_fields = config.sensitive_fields
         self.pii_fields = config.pii_fields
         self.custom_patterns = config.custom_patterns
-    
+
     def mask_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mask sensitive data in dictionary"""
         if not isinstance(data, dict):
             return data
-        
+
         masked = {}
         for key, value in data.items():
             if self._is_sensitive_field(key):
@@ -659,9 +659,9 @@ class DataMasker:
                 masked[key] = [self.mask_dict(item) if isinstance(item, dict) else item for item in value]
             else:
                 masked[key] = self._apply_pattern_masking(str(value))
-        
+
         return masked
-    
+
     def _mask_value(self, value: Any, field_name: str) -> str:
         """Mask specific field value"""
         if field_name in ['password', 'secret', 'token', 'key']:
@@ -690,12 +690,12 @@ class SolviewSettings(BaseSettings):
     max_span_attributes: int = Field(128, ge=0)
     max_span_events: int = Field(128, ge=0)
     max_span_links: int = Field(128, ge=0)
-    
+
     # Batching
     span_export_batch_size: int = Field(512, ge=1)
     span_export_timeout_ms: int = Field(30000, ge=1000)
     span_export_max_queue_size: int = Field(2048, ge=1)
-    
+
     # Metrics
     metrics_export_interval_ms: int = Field(60000, ge=1000)
     metrics_export_timeout_ms: int = Field(30000, ge=1000)
@@ -751,7 +751,7 @@ services:
       - OTLP_EXPORTER_HOST=otel-collector
     depends_on:
       - otel-collector
-  
+
   # OpenTelemetry Collector
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
@@ -762,23 +762,23 @@ services:
       - prometheus
       - loki
       - tempo
-  
+
   # Storage Layer
   prometheus:
     image: prom/prometheus:latest
     volumes:
       - ./docker/prometheus:/etc/prometheus
-  
+
   loki:
     image: grafana/loki:latest
     volumes:
       - ./docker/loki:/etc/loki
-  
+
   tempo:
     image: grafana/tempo:latest
     volumes:
       - ./docker/tempo:/etc/tempo
-  
+
   # Visualization
   grafana:
     image: grafana/grafana:latest

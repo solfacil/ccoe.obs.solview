@@ -30,7 +30,7 @@ O **Backend Processor** é uma aplicação secundária desenvolvida especificame
 
 ### 📊 Analytics Endpoints
 - **GET** `/api/v1/analytics/products` - Análise de produtos
-- **GET** `/api/v1/analytics/orders` - Análise de pedidos  
+- **GET** `/api/v1/analytics/orders` - Análise de pedidos
 - **GET** `/api/v1/analytics/report` - Relatório do sistema completo
 - **POST** `/api/v1/analytics/process-batch` - Processamento em lote
 
@@ -181,7 +181,7 @@ curl -X POST "http://localhost:8001/api/v1/processor/products/enrich" \
 backend-processor
     ├── analytics_analyze_products
     │   └── demo_app_get_products
-    ├── processor_order_workflow  
+    ├── processor_order_workflow
     │   ├── demo_app_create_order
     │   └── demo_app_get_product
     └── analytics_generate_system_report
@@ -249,7 +249,7 @@ backend-processor/
 # 5. Trace completo fica visível no Grafana
 ```
 
-### Order Processing Workflow  
+### Order Processing Workflow
 ```python
 # 1. Recebe request de processamento
 # 2. Cria pedido na Demo App

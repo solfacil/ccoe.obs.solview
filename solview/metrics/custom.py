@@ -69,12 +69,12 @@ KAFKA_PRODUCER_MEMORY_BYTES = Histogram(
     "Memory usage of Kafka producer operations in bytes.",
     ["topic", "app_name", "status"],
     buckets=[
-        1024,        # 1 KB
-        10240,       # 10 KB
-        102400,      # 100 KB
-        1048576,     # 1 MB
-        10485760,    # 10 MB
-        104857600,   # 100 MB
+        1024,  # 1 KB
+        10240,  # 10 KB
+        102400,  # 100 KB
+        1048576,  # 1 MB
+        10485760,  # 10 MB
+        104857600,  # 100 MB
         1073741824,  # 1 GB
     ],
 )
@@ -93,7 +93,25 @@ KAFKA_MESSAGE_PROCESSING_DURATION_SECONDS = Histogram(
     "kafka_message_processing_duration_seconds",
     "Duration of Kafka message processing in seconds.",
     ["topic", "handler", "app_name", "status"],
-    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0, 300.0],
+    buckets=[
+        0.001,
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0,
+        2.5,
+        5.0,
+        10.0,
+        15.0,
+        30.0,
+        60.0,
+        120.0,
+        300.0,
+    ],
 )
 
 KAFKA_CONSUMER_MEMORY_SAMPLES_TOTAL = Counter(
@@ -113,12 +131,12 @@ KAFKA_CONSUMER_MEMORY_BYTES = Histogram(
     "Memory usage of Kafka consumer operations in bytes.",
     ["topic", "handler", "app_name", "status"],
     buckets=[
-        1024,        # 1 KB
-        10240,       # 10 KB
-        102400,      # 100 KB
-        1048576,     # 1 MB
-        10485760,    # 10 MB
-        104857600,   # 100 MB
+        1024,  # 1 KB
+        10240,  # 10 KB
+        102400,  # 100 KB
+        1048576,  # 1 MB
+        10485760,  # 10 MB
+        104857600,  # 100 MB
         1073741824,  # 1 GB
     ],
 )
@@ -155,7 +173,6 @@ KAFKA_CONSUMER_REBALANCES_TOTAL = Counter(
 )
 
 
-
 # =============================================================================
 # HTTP Client Metrics
 # =============================================================================
@@ -170,7 +187,24 @@ HTTP_OUTGOING_REQUESTS_DURATION_SECONDS = Histogram(
     "http_outgoing_requests_duration_seconds",
     "Duration of outgoing HTTP requests in seconds.",
     ["method", "url_host", "url_path", "app_name", "status"],
-    buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0, 300.0],
+    buckets=[
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0,
+        2.5,
+        5.0,
+        10.0,
+        15.0,
+        30.0,
+        60.0,
+        120.0,
+        300.0,
+    ],
 )
 
 HTTP_OUTGOING_REQUESTS_ERRORS_TOTAL = Counter(
@@ -190,12 +224,12 @@ HTTP_OUTGOING_REQUESTS_MEMORY_BYTES = Histogram(
     "Memory usage of outgoing HTTP requests in bytes.",
     ["method", "url_host", "url_path", "app_name", "status"],
     buckets=[
-        1024,        # 1 KB
-        10240,       # 10 KB
-        102400,      # 100 KB
-        1048576,     # 1 MB
-        10485760,    # 10 MB
-        104857600,   # 100 MB
+        1024,  # 1 KB
+        10240,  # 10 KB
+        102400,  # 100 KB
+        1048576,  # 1 MB
+        10485760,  # 10 MB
+        104857600,  # 100 MB
         1073741824,  # 1 GB
     ],
 )
@@ -234,14 +268,147 @@ REDIS_OPERATIONS_MEMORY_BYTES = Histogram(
     "Memory usage of Redis operations in bytes.",
     ["command", "app_name", "status"],
     buckets=[
-        1024,        # 1 KB
-        10240,       # 10 KB
-        102400,      # 100 KB
-        1048576,     # 1 MB
-        10485760,    # 10 MB
-        104857600,   # 100 MB
+        1024,  # 1 KB
+        10240,  # 10 KB
+        102400,  # 100 KB
+        1048576,  # 1 MB
+        10485760,  # 10 MB
+        104857600,  # 100 MB
         1073741824,  # 1 GB
     ],
+)
+
+# =============================================================================
+# RabbitMQ Producer Metrics
+# =============================================================================
+
+RABBITMQ_MESSAGES_PUBLISHED_TOTAL = Counter(
+    "rabbitmq_messages_published_total",
+    "Total number of RabbitMQ messages published.",
+    ["routing_key", "exchange", "app_name"],
+)
+
+RABBITMQ_PUBLISHER_DURATION_SECONDS = Histogram(
+    "rabbitmq_publisher_duration_seconds",
+    "Duration of RabbitMQ publisher operations in seconds.",
+    ["routing_key", "exchange", "app_name", "status"],
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
+)
+
+RABBITMQ_PUBLISHER_MEMORY_SAMPLES_TOTAL = Counter(
+    "rabbitmq_publisher_memory_samples_total",
+    "Total number of memory samples taken for RabbitMQ publisher operations.",
+    ["routing_key", "exchange", "app_name"],
+)
+
+RABBITMQ_PUBLISHER_ERRORS_TOTAL = Counter(
+    "rabbitmq_publisher_errors_total",
+    "Total number of RabbitMQ publisher errors.",
+    ["routing_key", "exchange", "error_type", "app_name"],
+)
+
+RABBITMQ_PUBLISHER_MEMORY_BYTES = Histogram(
+    "rabbitmq_publisher_memory_bytes",
+    "Memory usage of RabbitMQ publisher operations in bytes.",
+    ["routing_key", "exchange", "app_name", "status"],
+    buckets=[
+        1024,  # 1 KB
+        10240,  # 10 KB
+        102400,  # 100 KB
+        1048576,  # 1 MB
+        10485760,  # 10 MB
+        104857600,  # 100 MB
+        1073741824,  # 1 GB
+    ],
+)
+
+# =============================================================================
+# RabbitMQ Consumer Metrics
+# =============================================================================
+
+RABBITMQ_MESSAGES_CONSUMED_TOTAL = Counter(
+    "rabbitmq_messages_consumed_total",
+    "Total number of RabbitMQ messages consumed.",
+    ["queue", "app_name"],
+)
+
+RABBITMQ_CONSUMER_PROCESSING_DURATION_SECONDS = Histogram(
+    "rabbitmq_consumer_processing_duration_seconds",
+    "Duration of RabbitMQ message processing in seconds.",
+    ["queue", "handler", "app_name", "status"],
+    buckets=[
+        0.001,
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0,
+        2.5,
+        5.0,
+        10.0,
+        15.0,
+        30.0,
+        60.0,
+        120.0,
+        300.0,
+        600.0,
+        800.0,
+    ],
+)
+
+RABBITMQ_CONSUMER_MEMORY_SAMPLES_TOTAL = Counter(
+    "rabbitmq_consumer_memory_samples_total",
+    "Total number of memory samples taken for RabbitMQ consumer operations.",
+    ["queue", "handler", "app_name"],
+)
+
+RABBITMQ_CONSUMER_ERRORS_TOTAL = Counter(
+    "rabbitmq_consumer_errors_total",
+    "Total number of RabbitMQ consumer errors.",
+    ["queue", "error_type", "app_name"],
+)
+
+RABBITMQ_CONSUMER_MEMORY_BYTES = Histogram(
+    "rabbitmq_consumer_memory_bytes",
+    "Memory usage of RabbitMQ consumer operations in bytes.",
+    ["queue", "handler", "app_name", "status"],
+    buckets=[
+        1024,  # 1 KB
+        10240,  # 10 KB
+        102400,  # 100 KB
+        1048576,  # 1 MB
+        10485760,  # 10 MB
+        104857600,  # 100 MB
+        1073741824,  # 1 GB
+    ],
+)
+
+# --- Consumer: Métricas de resiliência ---
+
+RABBITMQ_CONSUMER_LAST_SUCCESS_TIMESTAMP = Gauge(
+    "rabbitmq_consumer_last_success_timestamp",
+    "Unix timestamp da última mensagem processada com sucesso. "
+    "Alerta: time() - esta_metrica > 300 significa 5 min sem processar nada.",
+    ["queue", "app_name"],
+)
+
+RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS = Gauge(
+    "rabbitmq_consumer_consecutive_errors",
+    "Número de erros consecutivos sem um sucesso no meio. "
+    "Reseta pra 0 a cada sucesso. Diferente do errors_total (que só sobe), "
+    "este mostra se o worker está num loop de falha AGORA.",
+    ["queue", "app_name"],
+)
+
+RABBITMQ_CONSUMER_UNACKED_MESSAGES = Gauge(
+    "rabbitmq_consumer_unacked_messages",
+    "Mensagens não confirmadas (unacked) por fila. "
+    "Equivalente ao consumer lag do Kafka — valores altos indicam "
+    "que o consumer não está acompanhando a taxa de produção.",
+    ["queue", "app_name"],
 )
 
 # =============================================================================
@@ -258,7 +425,25 @@ BUSINESS_OPERATIONS_DURATION_SECONDS = Histogram(
     "business_operations_duration_seconds",
     "Duration of business operations in seconds.",
     ["operation", "app_name", "status"],
-    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0, 300.0],
+    buckets=[
+        0.001,
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0,
+        2.5,
+        5.0,
+        10.0,
+        15.0,
+        30.0,
+        60.0,
+        120.0,
+        300.0,
+    ],
 )
 
 BUSINESS_OPERATIONS_MEMORY_SAMPLES_TOTAL = Counter(
@@ -272,12 +457,12 @@ BUSINESS_OPERATIONS_MEMORY_BYTES = Histogram(
     "Memory usage of business operations in bytes.",
     ["operation", "app_name", "status"],
     buckets=[
-        1024,        # 1 KB
-        10240,       # 10 KB
-        102400,      # 100 KB
-        1048576,     # 1 MB
-        10485760,    # 10 MB
-        104857600,   # 100 MB
+        1024,  # 1 KB
+        10240,  # 10 KB
+        102400,  # 100 KB
+        1048576,  # 1 MB
+        10485760,  # 10 MB
+        104857600,  # 100 MB
         1073741824,  # 1 GB
     ],
 )

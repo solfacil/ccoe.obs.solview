@@ -27,6 +27,19 @@ def _get_base_kafka_attributes(topic, operation, system_type):
     }
 
 
+def _get_base_rabbitmq_attributes(
+    destination, operation, system_type, routing_key=None
+):
+    attrs = {
+        "messaging.system": "rabbitmq",
+        f"messaging.{'destination' if system_type == 'publisher' else 'source'}": destination,
+        "messaging.operation": operation,
+    }
+    if routing_key is not None:
+        attrs["messaging.rabbitmq.routing_key"] = routing_key
+    return attrs
+
+
 def _normalize_url_path(url_path: str) -> str:
     normalized = re.sub(r"/\d+", "/{id}", url_path)
     normalized = re.sub(
@@ -35,7 +48,9 @@ def _normalize_url_path(url_path: str) -> str:
         normalized,
         flags=re.IGNORECASE,
     )
-    normalized = re.sub(r"/[a-f0-9]{24}", "/{object_id}", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(
+        r"/[a-f0-9]{24}", "/{object_id}", normalized, flags=re.IGNORECASE
+    )
     normalized = re.sub(r"/[a-f0-9]{32}", "/{hash}", normalized, flags=re.IGNORECASE)
 
     return normalized.split("?")[0]
@@ -73,11 +88,7 @@ class MemoryProfiler:
                 self.stop()
 
     def get_memory_delta(self) -> Optional[int]:
-        if (
-            not self.enabled
-            or self._start is None
-            or self._end is None
-        ):
+        if not self.enabled or self._start is None or self._end is None:
             return None
 
         return max(0, self._end - self._start)
