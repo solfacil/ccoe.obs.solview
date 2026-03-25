@@ -1,11 +1,12 @@
 [project]
 name = "solview"
-version = "2.1.3"
+version = "2.1.5"
 description = "Observabilidade clara como o Sol"
 authors = [
     { name = "Solfácil", email = "jefferson.martins@solfacil.com.br" },
     { name = "Solfácil", email = "marcelo.souza@solfacil.com.br" },
     { name = "Solfácil", email = "vitor.garcia@solfacil.com.br" },
+    { name = "Solfácil", email = "ketillin.tavares@solfacil.com.br" }
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -34,6 +35,8 @@ dependencies = [
     "opentelemetry-instrumentation-redis (>=0.60b1)",
     "httpx>=0.28.1",
     "redis>=7.2.1",
+    "aio-pika>=9.6.2",
+    "opentelemetry-instrumentation-aio-pika>=0.60b1",
 ]
 
 [project.optional-dependencies]
@@ -59,4 +62,6 @@ dev = [
     "pytest-asyncio>=1.2.0",
     "fastmcp>=2.0.0",
     "ruff>=0.15.4",
+    "pytest-cov>=7.1.0",
+    "ty>=0.0.25",
 ]

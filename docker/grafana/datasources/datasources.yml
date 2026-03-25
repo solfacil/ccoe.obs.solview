@@ -103,4 +103,3 @@ datasources:
     type: testdata
     uid: testdata-uid
     editable: true
-

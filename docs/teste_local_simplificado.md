@@ -48,7 +48,7 @@ Para a stack e para a aplicação usarem a mesma configuração:
 cp config/solview.env.example .env
 ```
 
-Ajuste o `.env` se quiser (para desenvolvimento costuma bastar o default).  
+Ajuste o `.env` se quiser (para desenvolvimento costuma bastar o default).
 Para **rodar apenas os testes**, não é obrigatório ter `.env`; os testes que precisam de config usam `setup_settings(SolviewSettings(...))` e/ou `PYTHON_ENV=unittest` (veja a seção de pytest abaixo).
 
 ---
@@ -148,15 +148,15 @@ PYTHON_ENV=unittest pytest tests/tracing/ -v
 
 ## 6. Ordem sugerida para validar suas alterações
 
-1. **Só testes (sem Docker)**  
-   - `pytest tests/ -v`  
+1. **Só testes (sem Docker)**
+   - `pytest tests/ -v`
    - Em especial: `pytest tests/tracing/ tests/metrics/ tests/integration/ -v`
 
-2. **Stack local (opcional)**  
-   - `docker-compose up -d`  
+2. **Stack local (opcional)**
+   - `docker-compose up -d`
    - Validar health/endpoints acima e, se quiser, acessar Grafana (http://localhost:3000) e Prometheus (http://localhost:9090).
 
-3. **Demo app (opcional)**  
+3. **Demo app (opcional)**
    - Se o `docker-compose` sobe uma demo app, acesse http://localhost:8000 e `/metrics`; caso tenha uma app FastAPI local (ex.: `examples/fastapi/main-stg.py`), rode com `uvicorn` e teste `/metrics` e `/health`.
 
 ---

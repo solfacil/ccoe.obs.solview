@@ -6,6 +6,17 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.1.5] - 2026-03-25
+### ✨ Adicionado
+- **Instrumentação RabbitMQ (aio-pika)** — decoradores `rabbitmq_publisher_instrumentation` e `rabbitmq_consumer_instrumentation` para instrumentação manual de operações RabbitMQ com tracing OpenTelemetry e métricas Prometheus
+- **Auto-instrumentação aio-pika** — `AioPikaInstrumentor().instrument()` adicionado em `setup_tracer()` para tracing automático de operações aio-pika
+- **Métricas RabbitMQ Publisher**: `rabbitmq_messages_published_total`, `rabbitmq_publisher_duration_seconds`, `rabbitmq_publisher_errors_total`, `rabbitmq_publisher_memory_bytes`, `rabbitmq_publisher_memory_samples_total` (labels: `routing_key`, `exchange`, `app_name`, `status`, `error_type`)
+- **Métricas RabbitMQ Consumer**: `rabbitmq_messages_consumed_total`, `rabbitmq_consumer_processing_duration_seconds`, `rabbitmq_consumer_errors_total`, `rabbitmq_consumer_memory_bytes`, `rabbitmq_consumer_memory_samples_total` (labels: `queue`, `handler`, `app_name`, `status`, `error_type`)
+- **Dependências**: `aio-pika>=9.6.2`, `opentelemetry-instrumentation-aio-pika>=0.60b1`
+- **Testes completos** em `tests/instrumentation/test_rabbitmq.py` (17 testes: publisher success/error/memory, consumer success/error/memory, múltiplas filas)
+
+---
+
 ## [2.1.3] - 2026-03-10
 ### 🐛 Corrigido
 - **Trace name (MCP)** — o trace aparecia com nome da primeira operação (ex.: "mcp-distribution SETEX") por não haver span raiz por request HTTP. Adicionado **`SolviewMCPASGIMiddleware`**: use-o como camada mais externa do app ASGI para que cada request tenha um span raiz no formato `METHOD path` (ex.: "POST /mcp") e as operações MCP/Redis fiquem como filhos. Documentação em `docs/mcp.md` e `docs/tracing.md`.
@@ -126,7 +137,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ### ✨ Primeira versão
 - **Logging básico** estruturado
-- **Métricas** HTTP simples  
+- **Métricas** HTTP simples
 - **Tracing** manual com Jaeger
 - **Documentação** inicial
 

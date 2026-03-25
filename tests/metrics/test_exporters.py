@@ -2,9 +2,13 @@ import pytest
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from starlette.testclient import TestClient
-from solview.metrics.exporters import SolviewPrometheusMiddleware, prometheus_metrics_response
+from solview.metrics.exporters import (
+    SolviewPrometheusMiddleware,
+    prometheus_metrics_response,
+)
 from solview.metrics.core import METRIC_REQUESTS, METRIC_RESPONSES
 from unittest.mock import patch, MagicMock
+
 
 @pytest.fixture
 def app():
@@ -19,11 +23,14 @@ def app():
     app.add_route("/metrics", prometheus_metrics_response)
     return app
 
+
 def test_ping_and_metrics_endpoint(app):
     client = TestClient(app)
-    
+
     # Antes da chamada, captura a contagem da métrica
-    before = METRIC_REQUESTS.labels(method="GET", path="/ping", service_name="test-service")._value.get()
+    before = METRIC_REQUESTS.labels(
+        method="GET", path="/ping", service_name="test-service"
+    )._value.get()
 
     # Faz uma chamada para o endpoint /ping
     resp = client.get("/ping")
@@ -31,7 +38,9 @@ def test_ping_and_metrics_endpoint(app):
     assert resp.text == "pong"
 
     # Após chamada, a métrica deve ser incrementada
-    after = METRIC_REQUESTS.labels(method="GET", path="/ping", service_name="test-service")._value.get()
+    after = METRIC_REQUESTS.labels(
+        method="GET", path="/ping", service_name="test-service"
+    )._value.get()
     assert after == before + 1
 
     # Checa se /metrics retorna métricas Prometheus
@@ -39,6 +48,7 @@ def test_ping_and_metrics_endpoint(app):
     assert metrics_resp.status_code == 200
     assert "http_requests_total" in metrics_resp.text
     assert "test-service" in metrics_resp.text
+
 
 def test_404_path_is_not_counted(app):
     client = TestClient(app)

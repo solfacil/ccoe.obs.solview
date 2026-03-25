@@ -74,10 +74,10 @@ async def health():
 @app.get("/api/users/{user_id}")
 async def get_user(user_id: int):
     logger.info("Getting user", user_id=user_id)
-    
+
     # Simulação de busca
     user = {"id": user_id, "name": f"User {user_id}"}
-    
+
     logger.info("User found", user=user, user_id=user_id)
     return user
 ```
@@ -188,31 +188,31 @@ active_connections = Gauge(
 @app.post("/api/orders")
 async def create_order(order: OrderRequest):
     start_time = time.time()
-    
+
     try:
         # Processar pedido
         result = await process_order(order)
-        
+
         # Incrementar contador de sucesso
         order_counter.labels(
             status='success',
             payment_method=order.payment_method
         ).inc()
-        
+
         # Registrar tempo de processamento
         processing_time.labels(
             order_type=order.type
         ).observe(time.time() - start_time)
-        
+
         return result
-        
+
     except Exception as e:
         # Incrementar contador de erro
         order_counter.labels(
             status='error',
             payment_method=order.payment_method
         ).inc()
-        
+
         logger.error("Order processing failed", error=str(e), order_id=order.id)
         raise
 ```
@@ -231,37 +231,37 @@ async def complex_operation(operation_id: str):
     with tracer.start_as_current_span("complex_operation") as span:
         span.set_attribute("operation.id", operation_id)
         span.set_attribute("operation.type", "data_processing")
-        
+
         # Sub-operação 1: Validação
         with tracer.start_as_current_span("validate_input") as validation_span:
             validation_span.set_attribute("input.size", len(operation_id))
-            
+
             if not operation_id.isalnum():
                 validation_span.set_status(trace.Status(trace.StatusCode.ERROR, "Invalid input"))
                 raise ValueError("Invalid operation ID")
-            
+
             validation_span.set_status(trace.Status(trace.StatusCode.OK))
-        
+
         # Sub-operação 2: Processamento
         with tracer.start_as_current_span("process_data") as process_span:
             process_span.set_attribute("processing.method", "async")
-            
+
             # Simular processamento
             await asyncio.sleep(0.1)
             result = f"Processed: {operation_id}"
-            
+
             process_span.set_attribute("result.size", len(result))
             process_span.set_status(trace.Status(trace.StatusCode.OK))
-        
+
         # Sub-operação 3: Persistência
         with tracer.start_as_current_span("save_result") as save_span:
             save_span.set_attribute("storage.type", "database")
-            
+
             # Simular save
             logger.info("Saving result", operation_id=operation_id, result=result)
-            
+
             save_span.set_status(trace.Status(trace.StatusCode.OK))
-        
+
         span.set_status(trace.Status(trace.StatusCode.OK))
         return {"operation_id": operation_id, "result": result}
 ```
@@ -283,20 +283,20 @@ async def process_payment(payment: PaymentRequest):
         currency=payment.currency,
         user_id=payment.user_id
     ) as payment_logger:
-        
+
         payment_logger.info("Payment processing started")
-        
+
         try:
             # Validação
             payment_logger.debug("Validating payment data")
             if payment.amount <= 0:
                 payment_logger.warning("Invalid payment amount", amount=payment.amount)
                 raise ValueError("Amount must be positive")
-            
+
             # Processamento
             payment_logger.info("Processing payment with gateway")
             result = await payment_gateway.process(payment)
-            
+
             # Log com dados estruturados
             payment_logger.info(
                 "Payment processed successfully",
@@ -304,9 +304,9 @@ async def process_payment(payment: PaymentRequest):
                 gateway_response_time=result.response_time,
                 fees=result.fees
             )
-            
+
             return result
-            
+
         except PaymentGatewayError as e:
             payment_logger.error(
                 "Payment gateway error",
@@ -315,7 +315,7 @@ async def process_payment(payment: PaymentRequest):
                 retry_after=e.retry_after
             )
             raise
-            
+
         except Exception as e:
             payment_logger.error(
                 "Unexpected payment error",
@@ -360,11 +360,11 @@ settings = SolviewSettings(
 async def create_user(user: UserRequest):
     # Dados sensíveis são automaticamente mascarados nos logs
     logger.info("Creating user", user_data=user.dict())
-    
+
     # CPF será logado como "***.***.***-**"
     # Email será logado como "u****@****.com"
     # Password não aparecerá nos logs
-    
+
     return await user_service.create(user)
 ```
 
@@ -388,34 +388,34 @@ class ExternalAPIClient:
             timeout=30.0
         )
         self.logger = get_logger(__name__)
-    
+
     async def get_user_data(self, user_id: str):
         with tracer.start_as_current_span("external_api_call") as span:
             span.set_attribute("external.service", "user-service")
             span.set_attribute("user.id", user_id)
-            
+
             try:
                 self.logger.info("Calling external API", user_id=user_id)
-                
+
                 response = await self.client.get(f"/users/{user_id}")
                 response.raise_for_status()
-                
+
                 data = response.json()
-                
+
                 span.set_attribute("response.size", len(response.content))
                 span.set_status(trace.Status(trace.StatusCode.OK))
-                
+
                 self.logger.info(
                     "External API call successful",
                     user_id=user_id,
                     response_time=response.elapsed.total_seconds()
                 )
-                
+
                 return data
-                
+
             except httpx.HTTPError as e:
                 span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
-                
+
                 self.logger.error(
                     "External API call failed",
                     user_id=user_id,
@@ -444,6 +444,56 @@ async def set_cache(key: str, value: str, ttl: int = 300):
 ```
 
 O decorator registra métricas `redis_operations_*` (total, duração, erros, memória). A auto-instrumentação via `setup_tracer()` já rastreia operações Redis com OpenTelemetry (tanto `redis` sync quanto `redis.asyncio` async).
+
+---
+
+## 🐇 Instrumentação RabbitMQ (aio-pika)
+
+Para instrumentação manual de operações RabbitMQ com métricas Prometheus, use os decoradores `rabbitmq_publisher_instrumentation` e `rabbitmq_consumer_instrumentation`:
+
+### Publisher
+
+```python
+from solview import rabbitmq_publisher_instrumentation
+
+@rabbitmq_publisher_instrumentation(operation="publish")
+async def publish_event(exchange: str, routing_key: str, body: bytes):
+    await channel.default_exchange.publish(
+        aio_pika.Message(body=body),
+        routing_key=routing_key,
+    )
+
+# Uso
+await publish_event(exchange="events", routing_key="order.created", body=payload)
+```
+
+### Consumer
+
+```python
+from solview import rabbitmq_consumer_instrumentation
+
+@rabbitmq_consumer_instrumentation(operation="process")
+async def process_message(queue: str, message: aio_pika.IncomingMessage):
+    async with message.process():
+        data = json.loads(message.body)
+        await handle(data)
+
+# Uso
+await process_message(queue="orders", message=incoming_msg)
+```
+
+### Métricas disponíveis
+
+| Métrica | Tipo | Labels |
+|---------|------|--------|
+| `rabbitmq_messages_published_total` | Counter | `routing_key`, `exchange`, `app_name` |
+| `rabbitmq_publisher_duration_seconds` | Histogram | `routing_key`, `exchange`, `app_name`, `status` |
+| `rabbitmq_publisher_errors_total` | Counter | `routing_key`, `exchange`, `error_type`, `app_name` |
+| `rabbitmq_messages_consumed_total` | Counter | `queue`, `app_name` |
+| `rabbitmq_consumer_processing_duration_seconds` | Histogram | `queue`, `handler`, `app_name`, `status` |
+| `rabbitmq_consumer_errors_total` | Counter | `queue`, `error_type`, `app_name` |
+
+A auto-instrumentação via `setup_tracer()` já rastreia operações aio-pika com OpenTelemetry automaticamente.
 
 ---
 
@@ -476,30 +526,30 @@ AsyncSessionLocal = sessionmaker(
 class UserRepository:
     def __init__(self):
         self.logger = get_logger(__name__)
-    
+
     async def get_user(self, user_id: int):
         with tracer.start_as_current_span("db_get_user") as span:
             span.set_attribute("db.operation", "SELECT")
             span.set_attribute("db.table", "users")
             span.set_attribute("user.id", user_id)
-            
+
             async with AsyncSessionLocal() as session:
                 try:
                     self.logger.debug("Querying user from database", user_id=user_id)
-                    
+
                     # Query será automaticamente trackeada
                     result = await session.get(User, user_id)
-                    
+
                     if result:
                         span.set_attribute("db.rows_affected", 1)
                         self.logger.info("User found", user_id=user_id)
                     else:
                         span.set_attribute("db.rows_affected", 0)
                         self.logger.warning("User not found", user_id=user_id)
-                    
+
                     span.set_status(trace.Status(trace.StatusCode.OK))
                     return result
-                    
+
                 except Exception as e:
                     span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
                     self.logger.error("Database error", user_id=user_id, error=str(e))
@@ -664,7 +714,7 @@ logger.info("Test", key="value")  # Deve gerar JSON
 - [🔍 Guia de Tracing](tracing.md) - Traces distribuídos
 - [📝 Guia de Logging](logging.md) - Logs estruturados
 - [🤖 Guia MCP](mcp.md) - Observabilidade para FastMCP
- 
+
 
 ---
 

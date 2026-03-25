@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from starlette.testclient import TestClient
 from unittest.mock import patch
 
+
 def test_logger_called_for_unhandled_path(app):
     client = TestClient(app)
     with patch("solview.metrics.exporters._logger") as mock_logger:

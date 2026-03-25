@@ -95,7 +95,7 @@ curl http://localhost:8000/demo/generate-load?count=50
 # 2. Simular erros
 for i in {1..10}; do curl http://localhost:8000/demo/simulate-errors; done
 
-# 3. Simular requisições lentas  
+# 3. Simular requisições lentas
 curl http://localhost:8000/demo/slow-request
 
 # 4. Verificar alertas no Prometheus
@@ -262,7 +262,7 @@ curl http://localhost:8000/demo/process-data # Gerar trace
 # Gerar muitos erros 401
 for i in {1..20}; do curl http://localhost:8000/metrics; done
 
-# Gerar muitos erros 400  
+# Gerar muitos erros 400
 for i in {1..30}; do curl -X POST http://localhost:8000/demo/process-data -d "invalid"; done
 ```
 

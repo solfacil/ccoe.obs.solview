@@ -102,7 +102,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus", 
+      "datasource": "Prometheus",
       "description": "Request rate per second for all services",
       "fieldConfig": {
         "defaults": {

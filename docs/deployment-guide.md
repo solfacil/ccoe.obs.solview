@@ -197,16 +197,16 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Build and push Docker image
       run: |
         docker build -t minha-api:staging .
         docker tag minha-api:staging registry.staging.local/minha-api:${{ github.sha }}
         docker push registry.staging.local/minha-api:${{ github.sha }}
-    
+
     - name: Deploy to staging
       run: |
         ssh staging-server << 'EOF'
@@ -214,7 +214,7 @@ jobs:
           docker-compose -f docker-compose.staging.yml pull
           docker-compose -f docker-compose.staging.yml up -d
         EOF
-    
+
     - name: Run health checks
       run: |
         sleep 30
@@ -344,7 +344,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # Timeouts
         proxy_connect_timeout 5s;
         proxy_send_timeout 60s;
@@ -656,10 +656,10 @@ data:
     global:
       scrape_interval: 15s
       evaluation_interval: 15s
-    
+
     rule_files:
       - "/etc/prometheus/rules/*.yml"
-    
+
     scrape_configs:
       - job_name: 'kubernetes-pods'
         kubernetes_sd_configs:
@@ -711,7 +711,7 @@ data:
               summary: "High error rate detected in {{ $labels.service_name }}"
               description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.service_name }}"
               runbook_url: "https://runbooks.company.com/high-error-rate"
-          
+
           - alert: APIHighLatency
             expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
             for: 5m
@@ -721,7 +721,7 @@ data:
             annotations:
               summary: "High latency detected in {{ $labels.service_name }}"
               description: "95th percentile latency is {{ $value }}s for service {{ $labels.service_name }}"
-          
+
           - alert: PodCrashLooping
             expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
             for: 5m
@@ -766,7 +766,7 @@ data:
             "value": 0
           },
           {
-            "color": "yellow", 
+            "color": "yellow",
             "value": 1
           },
           {
@@ -848,28 +848,28 @@ async def make_request(session: aiohttp.ClientSession, url: str) -> dict:
 async def load_test(base_url: str, concurrent_requests: int, duration_seconds: int):
     """Execute load test"""
     print(f"🚀 Iniciando load test: {concurrent_requests} requests/sec por {duration_seconds}s")
-    
+
     connector = aiohttp.TCPConnector(limit=100)
     async with aiohttp.ClientSession(connector=connector) as session:
         results = []
         start_time = time.time()
-        
+
         while time.time() - start_time < duration_seconds:
             tasks = [
                 make_request(session, f"{base_url}/health")
                 for _ in range(concurrent_requests)
             ]
-            
+
             batch_results = await asyncio.gather(*tasks)
             results.extend(batch_results)
-            
+
             await asyncio.sleep(1)  # 1 request per second
-        
+
         # Análise dos resultados
         total_requests = len(results)
         successful_requests = sum(1 for r in results if r['success'])
         average_duration = sum(r['duration'] for r in results) / total_requests
-        
+
         print(f"📊 Resultados do Load Test:")
         print(f"  Total de requests: {total_requests}")
         print(f"  Requests bem-sucedidas: {successful_requests}")
@@ -990,7 +990,7 @@ spec:
 )
 
 # Latência durante deployment
-histogram_quantile(0.95, 
+histogram_quantile(0.95,
   sum(rate(http_request_duration_seconds_bucket[5m])) by (service_name, le)
 )
 
@@ -1013,7 +1013,7 @@ groups:
           severity: warning
         annotations:
           summary: "Deployment {{ $labels.deployment }} has mismatched replicas"
-          
+
       - alert: HighErrorRateDuringDeployment
         expr: |
           (

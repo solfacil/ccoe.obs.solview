@@ -29,15 +29,15 @@ O **Solview** é uma biblioteca Python de observabilidade empresarial que implem
 ```mermaid
 graph TB
     App[Aplicação FastAPI] --> Solview[Solview Library]
-    
+
     Solview --> |Metrics| Prometheus[Prometheus]
     Solview --> |Logs| Loki[Loki]
     Solview --> |Traces| Tempo[Tempo]
-    
+
     Prometheus --> Grafana[Grafana]
     Loki --> Grafana
     Tempo --> Grafana
-    
+
     Grafana --> |Service Graph| ServiceMap[Service Map]
     Grafana --> |Correlations| TraceMetrics[Trace ↔ Metrics]
     Grafana --> |Dashboards| Monitoring[Monitoring]
@@ -142,7 +142,7 @@ async def buscar_dados(query: str) -> str:
 
 ### 🔧 **Configuração**
 - [⚙️ **Configurações Avançadas**](docs/universal-configuration-guide.md) - Todas as opções de configuração
- 
+
 - [☸️ **Deploy com Helm**](docs/helm-deployment.md) - Kubernetes e Helm
 
 ### 📊 **Observabilidade**

@@ -1,7 +1,13 @@
 # main.py
 from fastapi import FastAPI
 from fastapi import HTTPException
-from solview import SolviewSettings, setup_logger, setup_tracer, setup_settings, get_logger
+from solview import (
+    SolviewSettings,
+    setup_logger,
+    setup_tracer,
+    setup_settings,
+    get_logger,
+)
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
 import random
 import asyncio
@@ -27,6 +33,7 @@ app.add_route("/metrics", prometheus_metrics_response)
 # Tracing (usa get_settings() internamente)
 setup_tracer(app)
 
+
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "Serviço no ar!"}
@@ -35,12 +42,14 @@ async def root():
 def fake_tempo_processamento():
     return random.uniform(0.1, 1.5)
 
+
 @app.get("/processar")
 async def processar_dados():
     # Simula um endpoint com tempo de resposta variável (Duration)
     tempo_processamento = fake_tempo_processamento()
     await asyncio.sleep(tempo_processamento)
     return {"message": f"Processado em {tempo_processamento:.2f}s"}
+
 
 @app.get("/falha")
 async def simular_erro():
@@ -60,5 +69,5 @@ async def http_request():
 
     except (httpx.HTTPError, httpx.TimeoutException, AttributeError, TypeError) as err:
         raise HTTPException(status_code=500, detail=str(err))
-    
+
     return response.json()

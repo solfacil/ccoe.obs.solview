@@ -123,9 +123,7 @@ def redis_client_instrumentation(command: str = "command"):
                     ).inc()
 
                     span.record_exception(exc)
-                    span.set_status(
-                        Status(StatusCode.ERROR, description=str(exc))
-                    )
+                    span.set_status(Status(StatusCode.ERROR, description=str(exc)))
                     raise
 
                 finally:
@@ -153,5 +151,7 @@ def redis_client_instrumentation(command: str = "command"):
                         cmd=command,
                         app_name=app_name,
                     )
+
         return wrapper
+
     return decorator

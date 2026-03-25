@@ -2,6 +2,7 @@ import os
 from solview.settings import SolviewSettings
 from solview.solview_logging.settings import LoggingSettings
 
+
 def test_solview_settings_env(monkeypatch):
     monkeypatch.setenv("SOLVIEW_LOG_LEVEL", "DEBUG")
     monkeypatch.setenv("SOLVIEW_ENVIRONMENT", "dev")
@@ -13,9 +14,10 @@ def test_solview_settings_env(monkeypatch):
     # Força o reload do módulo para recarregar as envs após o monkeypatch
     import importlib
     import solview.settings
+
     importlib.reload(solview.settings)
     from solview.settings import SolviewSettings
-    
+
     s = SolviewSettings()
     assert s.log_level == "DEBUG"
     # environment now remains raw input ("dev"), while effective mapping is available via property
@@ -26,9 +28,15 @@ def test_solview_settings_env(monkeypatch):
     assert s.version == "9.9.9"
     assert s.service_name_composed == "dev-api-sol"
 
+
 def test_logging_settings_properties():
     s = LoggingSettings(
-        log_level="WARNING", environment="prod", service_name="svc", domain="dm", subdomain="sd", version="2.0"
+        log_level="WARNING",
+        environment="prod",
+        service_name="svc",
+        domain="dm",
+        subdomain="sd",
+        version="2.0",
     )
     assert s.log_level == "WARNING"
     assert s.service_name_composed == "prod-svc"

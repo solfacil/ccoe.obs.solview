@@ -2,12 +2,14 @@ from typing import Any, Dict
 from opentelemetry.propagate import inject, extract
 from opentelemetry.trace import Span, get_current_span
 
+
 def inject_correlation_context(headers: Dict[str, str]) -> None:
     """
     Injeta contexto de tracing/correlation nos headers HTTP para chamada downstream.
     """
     inject(headers)
     # Exemplo: headers agora contém traceparent, tracestate, baggage
+
 
 def extract_correlation_context(headers: Dict[str, Any]) -> Span:
     """

@@ -47,7 +47,7 @@ groups:
       # High Response Time
       - alert: HighResponseTime
         expr: |
-          histogram_quantile(0.95, 
+          histogram_quantile(0.95,
             rate(fastapi_request_duration_seconds_bucket{job="solview-demo"}[5m])
           ) > 2
         for: 5m
@@ -63,7 +63,7 @@ groups:
       - alert: HighErrorRate
         expr: |
           (
-            rate(fastapi_responses_total{job="solview-demo", status_code=~"5.."}[5m]) / 
+            rate(fastapi_responses_total{job="solview-demo", status_code=~"5.."}[5m]) /
             rate(fastapi_responses_total{job="solview-demo"}[5m])
           ) > 0.05
         for: 2m
@@ -141,7 +141,7 @@ groups:
           summary: "Loki is down"
           description: "Loki is not responding - log ingestion may be affected"
 
-      # Tempo Issues  
+      # Tempo Issues
       - alert: TempoDown
         expr: |
           up{job="tempo"} == 0
@@ -152,4 +152,3 @@ groups:
         annotations:
           summary: "Tempo is down"
           description: "Tempo is not responding - trace ingestion may be affected"
-

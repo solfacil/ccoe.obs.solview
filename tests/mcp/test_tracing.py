@@ -171,14 +171,18 @@ class TestNoFastAPIDependencyWithoutApp:
         setup_settings(SolviewSettings(service_name="no-fastapi-test"))
         mock_otlp.return_value = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "fastapi": MagicMock(),
-            "prometheus_fastapi_instrumentator": MagicMock(),
-            "opentelemetry.instrumentation.fastapi": MagicMock(),
-        }) as patched:
+        with patch.dict(
+            "sys.modules",
+            {
+                "fastapi": MagicMock(),
+                "prometheus_fastapi_instrumentator": MagicMock(),
+                "opentelemetry.instrumentation.fastapi": MagicMock(),
+            },
+        ) as patched:
             setup_tracer()
 
         import sys
+
         fastapi_mod = sys.modules.get("opentelemetry.instrumentation.fastapi")
         if fastapi_mod and hasattr(fastapi_mod, "FastAPIInstrumentor"):
             fastapi_mod.FastAPIInstrumentor.return_value.instrument_app.assert_not_called()

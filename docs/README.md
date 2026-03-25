@@ -13,7 +13,7 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 
 ### ⚙️ **Configuração**
 - [⚙️ **Configurações Universais**](universal-configuration-guide.md) - Todas as opções de configuração
- 
+
 - [☸️ **Deploy com Helm**](helm-deployment.md) - Kubernetes e Helm charts
 
 ### 📊 **Observabilidade**
@@ -261,9 +261,9 @@ env | grep OTLP_EXPORTER
 
 ### 🎯 **Próximos Passos Recomendados**
 
-**Novo no Solview?** → [📋 Guia de Instrumentação](instrumentation-guide.md)  
-**Deploy em produção?** → [🚀 Guia de Deployment](deployment-guide.md)  
-**Configurar dashboards?** → [🔗 Correlação no Grafana](grafana-correlation-setup.md)  
+**Novo no Solview?** → [📋 Guia de Instrumentação](instrumentation-guide.md)
+**Deploy em produção?** → [🚀 Guia de Deployment](deployment-guide.md)
+**Configurar dashboards?** → [🔗 Correlação no Grafana](grafana-correlation-setup.md)
 **Questões de masking?** → [🔒 Masking](masking.md)
 
 </div>

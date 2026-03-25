@@ -22,36 +22,36 @@ settings = SolviewSettings(service_name="solview-demo-app")
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Gerencia o ciclo de vida da aplicação.
-    
+
     Args:
         app: Instância do FastAPI
     """
-    
+
     logger.info(
         "🚀 Solview Demo Application started",
         service=settings.service_name,
         version=settings.version,
         environment=settings.environment,
-        event="startup"
+        event="startup",
     )
-    
+
     yield
-    
+
     logger.info(
         "🛑 Solview Demo Application shutting down",
         service=settings.service_name,
-        event="shutdown"
+        event="shutdown",
     )
 
 
 def create_application() -> FastAPI:
     """
     Cria e configura a aplicação FastAPI com Solview integrado.
-    
+
     Returns:
         FastAPI: Aplicação configurada com Solview
     """
-    
+
     # Configurar Solview Settings
     # solview_settings = SolviewSettings(
     #     service_name=settings.service_name,
@@ -62,19 +62,18 @@ def create_application() -> FastAPI:
     #     otlp_exporter_port=4317,
     #     otlp_exporter_protocol="grpc"
     # )
-    
-    
+
     app = FastAPI(title="Solview Demo App")
-    
+
     # 2. Middleware de Métricas Prometheus do Solview
     # app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
-    
+
     # 3. Endpoint de Métricas do Solview
     app.add_route("/metrics", prometheus_metrics_response)
-    
+
     # 4. Setup Tracing OpenTelemetry do Solview
     setup_solview(settings, app=app)
-    
+
     # 5. Configurar CORS
     cors_origins = settings.cors_origins_list
     if cors_origins:
@@ -84,16 +83,16 @@ def create_application() -> FastAPI:
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"],
-            expose_headers=["X-Trace-Id", "X-Request-Id"]
+            expose_headers=["X-Trace-Id", "X-Request-Id"],
         )
-    
+
     logger.info(
         "✅ Solview integrado com sucesso",
         service=settings.service_name,
         features=["logging", "metrics", "tracing", "service_graph"],
-        event="solview_setup_complete"
+        event="solview_setup_complete",
     )
-    
+
     return app
 
 

@@ -18,11 +18,12 @@ app.add_route("/metrics", prometheus_metrics_response)
 # Setup do tracer OpenTelemetry (usa get_settings() internamente)
 setup_tracer(app)
 
+
 @app.get("/status")
 async def status():
     return {"status": "ok"}
 
+
 @app.post("/echo")
 async def echo(data: dict):
     return {"received": data}
-
