@@ -13,7 +13,8 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 - **Métricas RabbitMQ Publisher**: `rabbitmq_messages_published_total`, `rabbitmq_publisher_duration_seconds`, `rabbitmq_publisher_errors_total`, `rabbitmq_publisher_memory_bytes`, `rabbitmq_publisher_memory_samples_total` (labels: `routing_key`, `exchange`, `app_name`, `status`, `error_type`)
 - **Métricas RabbitMQ Consumer**: `rabbitmq_messages_consumed_total`, `rabbitmq_consumer_processing_duration_seconds`, `rabbitmq_consumer_errors_total`, `rabbitmq_consumer_memory_bytes`, `rabbitmq_consumer_memory_samples_total` (labels: `queue`, `handler`, `app_name`, `status`, `error_type`)
 - **Dependências**: `aio-pika>=9.6.2`, `opentelemetry-instrumentation-aio-pika>=0.60b1`
-- **Testes completos** em `tests/instrumentation/test_rabbitmq.py` (17 testes: publisher success/error/memory, consumer success/error/memory, múltiplas filas)
+- **Métricas de resiliência RabbitMQ Consumer**: `rabbitmq_consumer_last_success_timestamp` (Gauge), `rabbitmq_consumer_consecutive_errors` (Gauge), `rabbitmq_consumer_unacked_messages` (Gauge) — para alertas de consumer parado, loop de falha, e backpressure
+- **Testes completos** em `tests/instrumentation/test_rabbitmq.py` (22 testes: publisher success/error/memory, consumer success/error/memory, múltiplas filas, resiliência)
 
 ---
 

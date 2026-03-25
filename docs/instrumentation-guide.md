@@ -493,6 +493,16 @@ await process_message(queue="orders", message=incoming_msg)
 | `rabbitmq_consumer_processing_duration_seconds` | Histogram | `queue`, `handler`, `app_name`, `status` |
 | `rabbitmq_consumer_errors_total` | Counter | `queue`, `error_type`, `app_name` |
 
+### Métricas de resiliência
+
+| Métrica | Tipo | Labels | Descrição |
+|---------|------|--------|-----------|
+| `rabbitmq_consumer_last_success_timestamp` | Gauge | `queue`, `app_name` | Unix timestamp do último sucesso. Alerta se `time() - valor > 300` (5 min sem processar) |
+| `rabbitmq_consumer_consecutive_errors` | Gauge | `queue`, `app_name` | Erros consecutivos (reseta a 0 no sucesso). Mostra se o worker está em loop de falha |
+| `rabbitmq_consumer_unacked_messages` | Gauge | `queue`, `app_name` | Mensagens não confirmadas — equivalente ao consumer lag do Kafka |
+
+As métricas `last_success_timestamp` e `consecutive_errors` são atualizadas automaticamente pelo decorator `rabbitmq_consumer_instrumentation`. A métrica `unacked_messages` deve ser alimentada pela aplicação.
+
 A auto-instrumentação via `setup_tracer()` já rastreia operações aio-pika com OpenTelemetry automaticamente.
 
 ---

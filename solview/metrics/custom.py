@@ -386,6 +386,31 @@ RABBITMQ_CONSUMER_MEMORY_BYTES = Histogram(
     ],
 )
 
+# --- Consumer: Métricas de resiliência ---
+
+RABBITMQ_CONSUMER_LAST_SUCCESS_TIMESTAMP = Gauge(
+    "rabbitmq_consumer_last_success_timestamp",
+    "Unix timestamp da última mensagem processada com sucesso. "
+    "Alerta: time() - esta_metrica > 300 significa 5 min sem processar nada.",
+    ["queue", "app_name"],
+)
+
+RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS = Gauge(
+    "rabbitmq_consumer_consecutive_errors",
+    "Número de erros consecutivos sem um sucesso no meio. "
+    "Reseta pra 0 a cada sucesso. Diferente do errors_total (que só sobe), "
+    "este mostra se o worker está num loop de falha AGORA.",
+    ["queue", "app_name"],
+)
+
+RABBITMQ_CONSUMER_UNACKED_MESSAGES = Gauge(
+    "rabbitmq_consumer_unacked_messages",
+    "Mensagens não confirmadas (unacked) por fila. "
+    "Equivalente ao consumer lag do Kafka — valores altos indicam "
+    "que o consumer não está acompanhando a taxa de produção.",
+    ["queue", "app_name"],
+)
+
 # =============================================================================
 # Business Operations Metrics
 # =============================================================================

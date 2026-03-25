@@ -25,6 +25,8 @@ from solview.metrics.custom import (
     RABBITMQ_CONSUMER_ERRORS_TOTAL,
     RABBITMQ_CONSUMER_MEMORY_BYTES,
     RABBITMQ_CONSUMER_MEMORY_SAMPLES_TOTAL,
+    RABBITMQ_CONSUMER_LAST_SUCCESS_TIMESTAMP,
+    RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS,
 )
 from solview.solview_logging import get_logger
 
@@ -299,8 +301,24 @@ def rabbitmq_consumer_instrumentation(operation: str = "process"):
                     duration = time.perf_counter() - start_time
                     status = "success" if success else "error"
 
-                    if success and operation == "receive":
-                        RABBITMQ_MESSAGES_CONSUMED_TOTAL.labels(
+                    if success:
+                        if operation == "receive":
+                            RABBITMQ_MESSAGES_CONSUMED_TOTAL.labels(
+                                queue=queue,
+                                app_name=app_name,
+                            ).inc()
+
+                        RABBITMQ_CONSUMER_LAST_SUCCESS_TIMESTAMP.labels(
+                            queue=queue,
+                            app_name=app_name,
+                        ).set_to_current_time()
+
+                        RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS.labels(
+                            queue=queue,
+                            app_name=app_name,
+                        ).set(0)
+                    else:
+                        RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS.labels(
                             queue=queue,
                             app_name=app_name,
                         ).inc()

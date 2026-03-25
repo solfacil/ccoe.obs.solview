@@ -17,6 +17,8 @@ from solview.metrics.custom import (
     RABBITMQ_CONSUMER_PROCESSING_DURATION_SECONDS,
     RABBITMQ_CONSUMER_ERRORS_TOTAL,
     RABBITMQ_CONSUMER_MEMORY_SAMPLES_TOTAL,
+    RABBITMQ_CONSUMER_LAST_SUCCESS_TIMESTAMP,
+    RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS,
 )
 
 
@@ -338,3 +340,89 @@ class TestRabbitMQMultipleQueues:
 
         assert orders_metric._sum.get() > orders_before
         assert notifications_metric._sum.get() > notifications_before
+
+
+# =============================================================================
+# Resilience Metrics Tests
+# =============================================================================
+
+
+class TestRabbitMQConsumerResilience:
+    @pytest.mark.asyncio
+    async def test_last_success_timestamp_updated_on_success(self):
+        @rabbitmq_consumer_instrumentation(operation="process")
+        async def process_msg(queue: str, body: bytes):
+            return None
+
+        metric = RABBITMQ_CONSUMER_LAST_SUCCESS_TIMESTAMP.labels(
+            queue="orders_resil_ts", app_name="test-rabbitmq-app"
+        )
+        before = metric._value.get()
+
+        await process_msg(queue="orders_resil_ts", body=b"data")
+
+        assert metric._value.get() > before
+
+    @pytest.mark.asyncio
+    async def test_consecutive_errors_resets_on_success(self):
+        @rabbitmq_consumer_instrumentation(operation="process")
+        async def process_msg(queue: str, body: bytes):
+            return None
+
+        metric = RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS.labels(
+            queue="orders_resil_reset", app_name="test-rabbitmq-app"
+        )
+        metric.set(5)
+
+        await process_msg(queue="orders_resil_reset", body=b"data")
+
+        assert metric._value.get() == 0
+
+    @pytest.mark.asyncio
+    async def test_consecutive_errors_increments_on_error(self):
+        @rabbitmq_consumer_instrumentation(operation="process")
+        async def process_msg(queue: str, body: bytes):
+            raise RuntimeError("fail")
+
+        metric = RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS.labels(
+            queue="orders_resil_inc", app_name="test-rabbitmq-app"
+        )
+        before = metric._value.get()
+
+        with pytest.raises(RuntimeError):
+            await process_msg(queue="orders_resil_inc", body=b"data")
+
+        assert metric._value.get() == before + 1
+
+    @pytest.mark.asyncio
+    async def test_consecutive_errors_accumulates(self):
+        @rabbitmq_consumer_instrumentation(operation="process")
+        async def process_msg(queue: str, body: bytes):
+            raise RuntimeError("fail")
+
+        metric = RABBITMQ_CONSUMER_CONSECUTIVE_ERRORS.labels(
+            queue="orders_resil_accum", app_name="test-rabbitmq-app"
+        )
+        metric.set(0)
+
+        for _ in range(3):
+            with pytest.raises(RuntimeError):
+                await process_msg(queue="orders_resil_accum", body=b"data")
+
+        assert metric._value.get() == 3
+
+    @pytest.mark.asyncio
+    async def test_last_success_not_updated_on_error(self):
+        @rabbitmq_consumer_instrumentation(operation="process")
+        async def process_msg(queue: str, body: bytes):
+            raise RuntimeError("fail")
+
+        metric = RABBITMQ_CONSUMER_LAST_SUCCESS_TIMESTAMP.labels(
+            queue="orders_resil_no_ts", app_name="test-rabbitmq-app"
+        )
+        before = metric._value.get()
+
+        with pytest.raises(RuntimeError):
+            await process_msg(queue="orders_resil_no_ts", body=b"data")
+
+        assert metric._value.get() == before
