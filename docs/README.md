@@ -108,17 +108,16 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 
 ```python
 from fastapi import FastAPI
-from solview import SolviewSettings, setup_logger, setup_tracer
+from solview import setup_logger, setup_tracer
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
 
-# 1. Configuração
-settings = SolviewSettings(service_name="minha-api")
-app = FastAPI()
+# 1. Criar app
+app = FastAPI(title="Minha API")
 
-# 2. Setup Solview
-setup_logger(settings)
-setup_tracer(settings, app)
-app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
+# 2. Setup Solview (v2.2.0+)
+setup_logger()
+setup_tracer(app)  # Provider + libs + fastapi automaticamente
+app.add_middleware(SolviewPrometheusMiddleware)
 app.add_route("/metrics", prometheus_metrics_response)
 
 # 3. Sua API instrumentada automaticamente!

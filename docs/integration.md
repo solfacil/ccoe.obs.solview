@@ -2,6 +2,8 @@
 
 O `solview` foi projetado para oferecer **observabilidade unificada** — logging estruturado, métricas e tracing — em diversos tipos de aplicações Python. Este guia reúne as melhores práticas e exemplos para integrar o `solview` com frameworks e ambientes comuns.
 
+Versão Solview: `2.2.0+` (com funções separadas para tracing)
+
 ---
 
 ### 🧩 Componentes Principais
@@ -18,24 +20,56 @@ O `solview` foi projetado para oferecer **observabilidade unificada** — loggin
 
 ## 🚀 Exemplos por Contexto
 
-### ✅ FastAPI
+### ✅ FastAPI (Simples)
 
 ```python
 from fastapi import FastAPI
-from solview import SolviewSettings, setup_logger, setup_tracer
+from solview import setup_logger, setup_tracer
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
 
 app = FastAPI()
 
-# Logging estruturado
-setup_logger(SolviewSettings(service_name="api-clientes"))
+# Setup logging
+setup_logger()
 
-# Métricas via Prometheus
-app.add_middleware(SolviewPrometheusMiddleware, service_name="api-clientes")
+# Setup tracing (provider + libs + fastapi)
+setup_tracer(app)
+
+# Métricas
+app.add_middleware(SolviewPrometheusMiddleware)
 app.add_route("/metrics", prometheus_metrics_response)
+```
 
-# Tracing via OTEL
-setup_tracer(SolviewSettings(service_name="api-clientes"), app)
+### ✅ FastAPI (Com Engine em Import-time)
+
+```python
+from solview import setup_settings, setup_tracer_provider, setup_tracer_libs, setup_tracer_fastapi
+from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
+
+# 1. Settings
+setup_settings(SolviewSettings(service_name="api-clientes"))
+
+# 2. Tracer provider (antes de imports de DB)
+setup_tracer_provider()
+
+# 3. Lib instrumentation (antes de imports de DB)
+setup_tracer_libs()
+
+# 4. Agora é seguro importar módulos que tocam DB
+from app.controllers import router
+from app.db import engine
+
+# 5. FastAPI
+from fastapi import FastAPI
+app = FastAPI()
+app.include_router(router)
+
+# 6. Tracer FastAPI
+setup_tracer_fastapi(app)
+
+# 7. Métricas
+app.add_middleware(SolviewPrometheusMiddleware)
+app.add_route("/metrics", prometheus_metrics_response)
 ```
 
 ---
@@ -70,13 +104,12 @@ def process_task(data):
 ```python
 from fastmcp import FastMCP
 from prometheus_client import start_http_server
-from solview import SolviewSettings, setup_settings, setup_logger, setup_tracer
+from solview import setup_settings, setup_tracer
 from solview.mcp import SolviewMCPMiddleware
 
 # Observabilidade
 setup_settings(SolviewSettings(service_name="mcp-assistente"))
-setup_logger()
-setup_tracer()
+setup_tracer()  # Provider + libs (sem FastAPI instrumentation)
 
 # Métricas Prometheus (MCP não tem /metrics nativo)
 start_http_server(port=9090)
@@ -90,7 +123,7 @@ async def consultar_saldo(conta: str) -> str:
     return f"Saldo da conta {conta}: R$ 1.234,56"
 ```
 
-> Instale com `pip install solview[mcp]`. Chamadas a httpx, asyncpg e sqlalchemy dentro das tools são automaticamente rastreadas via OpenTelemetry.
+> Instale com `uv add solview[mcp]`. Chamadas a httpx, asyncpg e sqlalchemy dentro das tools são automaticamente rastreadas via OpenTelemetry.
 
 ---
 

@@ -32,19 +32,38 @@ from ..config import get_settings
 
 logger = logging.getLogger("solview.tracing.core")
 
+_state: Dict[str, Any] = {
+    "tracer_provider_initialized": False,
+    "tracer_provider": None,
+    "libs_instrumented": False,
+    "fastapi_instrumented_apps": set(),
+}
 
-def setup_tracer(app: Any = None) -> TracerProvider:
+
+def setup_tracer_provider() -> TracerProvider:
     """
-    Setup do OpenTelemetry tracing provider e auto-instrumentações de biblioteca.
+    Cria/retorna ``TracerProvider`` + ``MeterProvider`` + Resource + Sampler e
+    adiciona o ``BatchSpanProcessor`` com o exportador OTLP.
 
-    Funciona tanto para FastAPI quanto para FastMCP (ou qualquer app Python):
-    - Quando ``app`` é uma instância de ``FastAPI``, aplica instrumentação
-      específica (FastAPIInstrumentor + prometheus-fastapi-instrumentator).
-    - Quando ``app`` é ``None`` (ex.: FastMCP), aplica apenas as instrumentações
-      de biblioteca (httpx, requests, asyncpg, sqlalchemy, redis, logging).
+    Idempotente: chamadas subsequentes retornam o ``TracerProvider`` já criado
+    sem registrar processadores duplicados.
 
-    Usa a configuração atual de get_settings().
+    Em modo ``PYTHON_ENV=unittest`` com ``use_console_exporter_on_unittest``,
+    adiciona apenas um ``SimpleSpanProcessor(ConsoleSpanExporter())`` e retorna.
+
+    Ordem recomendada de uso para serviços com engine SQLAlchemy criada em
+    import-time::
+
+        setup_solview_settings(...)
+        setup_tracer_provider()
+        setup_tracer_libs()      # ANTES de importar módulos que criam engine
+        ... imports do projeto que tocam DB ...
+
+        app = FastAPI(...)
+        setup_tracer_fastapi(app)
     """
+    if _state["tracer_provider_initialized"] and _state["tracer_provider"] is not None:
+        return _state["tracer_provider"]
 
     settings = get_settings()
     service_name = settings.service_name
@@ -77,54 +96,12 @@ def setup_tracer(app: Any = None) -> TracerProvider:
         getattr(settings, "use_console_exporter_on_unittest", False)
         and python_env == "unittest"
     ):
-        # Usa SimpleSpanProcessor para evitar flush assíncrono em stdout fechado no teardown do pytest
+        # SimpleSpanProcessor evita flush assíncrono em stdout fechado no teardown do pytest.
         tracer_provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
         logger.info("[solview.tracing] Modo unittest: ConsoleSpanExporter habilitado.")
+        _state["tracer_provider"] = tracer_provider
+        _state["tracer_provider_initialized"] = True
         return tracer_provider
-
-    os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
-
-    # Auto-instrumentações de biblioteca (framework-agnostic)
-    LoggingInstrumentor().instrument(set_logging_format=True)
-    HTTPXClientInstrumentor().instrument()
-    AsyncPGInstrumentor().instrument()
-    SQLAlchemyInstrumentor().instrument(
-        enable_commenter=settings.otlp_sqlalchemy_enable_commenter, commenter_options={}
-    )
-    HttpClientInstrumentor().instrument()
-    RequestsInstrumentor().instrument()
-    RedisInstrumentor().instrument()
-    AioPikaInstrumentor().instrument()
-    logger.info(
-        "[solview.tracing] Instrumentação library-level ativada "
-        "(httpx, requests, asyncpg, sqlalchemy, redis, aio-pika, logging, http.client)"
-    )
-
-    # Instrumentação específica de FastAPI (só quando app é FastAPI)
-    if app:
-        try:
-            from fastapi import FastAPI as _FastAPI
-
-            if isinstance(app, _FastAPI):
-                from prometheus_fastapi_instrumentator import Instrumentator
-                from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-
-                Instrumentator().instrument(app=app).expose(app)
-
-                excluded_urls = "/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"
-                FastAPIInstrumentor().instrument_app(
-                    app=app,
-                    excluded_urls=excluded_urls,
-                )
-                logger.info(
-                    "[solview.tracing] FastAPI instrumentada para tracing "
-                    "(excluindo URLs de infraestrutura: %s)",
-                    excluded_urls,
-                )
-        except ImportError:
-            logger.debug(
-                "[solview.tracing] FastAPI não instalado — instrumentação FastAPI ignorada"
-            )
 
     exporter = _get_otlp_span_exporter(
         protocol=settings.otlp_exporter_protocol,
@@ -140,6 +117,130 @@ def setup_tracer(app: Any = None) -> TracerProvider:
         settings.otlp_exporter_host,
         settings.otlp_exporter_port,
     )
+
+    _state["tracer_provider"] = tracer_provider
+    _state["tracer_provider_initialized"] = True
+    return tracer_provider
+
+
+def setup_tracer_libs() -> None:
+    """
+    Aplica auto-instrumentações de biblioteca (framework-agnostic):
+    Logging, HTTPX, AsyncPG, SQLAlchemy, http.client, Requests, Redis, AioPika.
+
+    Idempotente: chamadas repetidas não re-executam as instrumentações nem
+    duplicam logs.
+
+    Deve ser chamada **antes** de qualquer import que crie engine SQLAlchemy
+    em nível de módulo, caso contrário a engine pré-existente não recebe os
+    event listeners de ``before_cursor_execute``/``after_cursor_execute`` e
+    o atributo ``db.statement`` não é populado nos spans.
+    """
+    if _state["libs_instrumented"]:
+        return
+
+    settings = get_settings()
+    python_env = os.getenv("PYTHON_ENV", "")
+    if (
+        getattr(settings, "use_console_exporter_on_unittest", False)
+        and python_env == "unittest"
+    ):
+        # Em modo unittest com console exporter não aplicamos auto-instrumentação
+        # de bibliotecas para preservar o comportamento legado de setup_tracer().
+        _state["libs_instrumented"] = True
+        return
+
+    os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
+
+    LoggingInstrumentor().instrument(set_logging_format=True)
+    HTTPXClientInstrumentor().instrument()
+    AsyncPGInstrumentor().instrument()
+    SQLAlchemyInstrumentor().instrument(
+        enable_commenter=settings.otlp_sqlalchemy_enable_commenter, commenter_options={}
+    )
+    HttpClientInstrumentor().instrument()
+    RequestsInstrumentor().instrument()
+    RedisInstrumentor().instrument()
+    AioPikaInstrumentor().instrument()
+    logger.info(
+        "[solview.tracing] Instrumentação library-level ativada "
+        "(httpx, requests, asyncpg, sqlalchemy, redis, aio-pika, logging, http.client)"
+    )
+
+    _state["libs_instrumented"] = True
+
+
+def setup_tracer_fastapi(app: Any) -> None:
+    """
+    Aplica instrumentação específica de FastAPI: ``FastAPIInstrumentor`` e
+    ``prometheus-fastapi-instrumentator``.
+
+    Idempotente por instância de ``app``: se a mesma app for passada novamente,
+    a instrumentação não é re-aplicada.
+
+    Se ``app`` não for uma instância de ``FastAPI`` (ou FastAPI não estiver
+    instalado), a chamada é ignorada silenciosamente.
+    """
+    if app is None:
+        return
+
+    try:
+        from fastapi import FastAPI as _FastAPI
+    except ImportError:
+        logger.debug(
+            "[solview.tracing] FastAPI não instalado — instrumentação FastAPI ignorada"
+        )
+        return
+
+    if not isinstance(app, _FastAPI):
+        return
+
+    app_id = id(app)
+    if app_id in _state["fastapi_instrumented_apps"]:
+        return
+
+    from prometheus_fastapi_instrumentator import Instrumentator
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+    Instrumentator().instrument(app=app).expose(app)
+
+    excluded_urls = "/metrics|/ready|/info|/docs|/openapi.json|/favicon.ico"
+    FastAPIInstrumentor().instrument_app(
+        app=app,
+        excluded_urls=excluded_urls,
+    )
+    logger.info(
+        "[solview.tracing] FastAPI instrumentada para tracing "
+        "(excluindo URLs de infraestrutura: %s)",
+        excluded_urls,
+    )
+
+    _state["fastapi_instrumented_apps"].add(app_id)
+
+
+def setup_tracer(app: Any = None) -> TracerProvider:
+    """
+    Setup do OpenTelemetry tracing provider e auto-instrumentações de biblioteca.
+
+    Wrapper compatível com a API original — chama, em ordem,
+    ``setup_tracer_provider()``, ``setup_tracer_libs()`` e, se ``app`` for uma
+    instância de FastAPI, ``setup_tracer_fastapi(app)``.
+
+    Funciona tanto para FastAPI quanto para FastMCP (ou qualquer app Python):
+    - Quando ``app`` é uma instância de ``FastAPI``, aplica instrumentação
+      específica (FastAPIInstrumentor + prometheus-fastapi-instrumentator).
+    - Quando ``app`` é ``None`` (ex.: FastMCP), aplica apenas as instrumentações
+      de biblioteca.
+
+    Para resolver o *ordering bug* com engines SQLAlchemy criadas em
+    import-time, prefira chamar diretamente ``setup_tracer_provider()`` e
+    ``setup_tracer_libs()`` antes dos imports do projeto, e
+    ``setup_tracer_fastapi(app)`` depois de criar o ``FastAPI``.
+    """
+    tracer_provider = setup_tracer_provider()
+    setup_tracer_libs()
+    if app is not None:
+        setup_tracer_fastapi(app)
     return tracer_provider
 
 

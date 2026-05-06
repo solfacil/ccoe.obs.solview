@@ -13,26 +13,38 @@ Este documento apresenta as **melhores práticas** para implementação, configu
 #### **1. Instrumentação Consistente**
 
 ```python
-# ✅ BOM: Setup centralizado
-from solview import SolviewSettings, setup_logger, setup_tracer
+# ✅ BOM: Setup centralizado (v2.2.0+)
+from solview import setup_logger, setup_tracer
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
+from fastapi import FastAPI
 
 def create_app() -> FastAPI:
-    # Configuração centralizada
-    settings = SolviewSettings()
-
-    app = FastAPI(
-        title=settings.service_name,
-        version=settings.service_version
-    )
+    app = FastAPI()
 
     # Setup obrigatório em ordem
-    setup_logger(settings)
-    setup_tracer(settings, app)
-    app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
+    setup_logger()
+    setup_tracer(app)  # Provider + libs + fastapi em uma chamada
+    app.add_middleware(SolviewPrometheusMiddleware)
     app.add_route("/metrics", prometheus_metrics_response)
 
     return app
+
+# ✅ BOM: Setup com engine em import-time
+from solview import setup_settings, setup_tracer_provider, setup_tracer_libs, setup_tracer_fastapi
+
+# 1. Settings
+setup_settings(SolviewSettings(service_name="api"))
+
+# 2. Tracer provider + libs (ANTES dos imports de DB)
+setup_tracer_provider()
+setup_tracer_libs()
+
+# 3. Imports que criam engine
+from app.db import engine
+
+# 4. App e tracer fastapi
+app = FastAPI()
+setup_tracer_fastapi(app)
 ```
 
 #### **2. Nomeação Consistente de Serviços**

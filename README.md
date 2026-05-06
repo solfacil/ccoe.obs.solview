@@ -67,29 +67,28 @@ cp config/solview.env.example .env
 
 Nota: `SOLVIEW_ENVIRONMENT` aceita valores como `dev`, `stg`, `qa` e será normalizado internamente para `dev`. Apenas `prd`/`prod`/`production` será normalizado para `prd`. Use `settings.environment_effective` para obter o valor final (`dev`|`prd`).
 
-### 3. Instrumentação Básica
+### 3. Instrumentação Básica (FastAPI)
 
 ```python
 from fastapi import FastAPI
-from solview import SolviewSettings, setup_logger, setup_tracer
+from solview import setup_logger, setup_tracer
 from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
-
-# Configuração
-settings = SolviewSettings()
 
 # Criar aplicação
 app = FastAPI(title="Minha API")
 
-# Instrumentação Solview
-setup_logger(settings)
-setup_tracer(settings, app)
-app.add_middleware(SolviewPrometheusMiddleware, settings=settings)
+# Instrumentação Solview (v2.2.0+)
+setup_logger()
+setup_tracer(app)  # Provider + libs + fastapi automaticamente
+app.add_middleware(SolviewPrometheusMiddleware)
 app.add_route("/metrics", prometheus_metrics_response)
 
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
 ```
+
+Para casos com engine SQLAlchemy em import-time, veja [Ordering Bug com SQLAlchemy](docs/tracing.md#-ordering-bug-com-sqlalchemy--engines-em-import-time).
 
 ### 4. Execução com Observabilidade
 

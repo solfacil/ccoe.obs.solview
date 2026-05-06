@@ -7,7 +7,13 @@ Biblioteca centralizada de logging, métricas e tracing (Solfácil).
 from .settings import SolviewSettings, TracingSettings, MetricsSettings
 from .config import get_settings, setup_settings
 from .solview_logging import get_logger, setup_logger
-from .tracing import get_tracer, setup_tracer
+from .tracing import (
+    get_tracer,
+    setup_tracer,
+    setup_tracer_provider,
+    setup_tracer_libs,
+    setup_tracer_fastapi,
+)
 from .instrumentation import (
     kafka_producer_instrumentation,
     kafka_consumer_instrumentation,
@@ -27,6 +33,9 @@ __all__ = [
     "setup_db_pool_metrics",
     "get_tracer",
     "setup_tracer",
+    "setup_tracer_provider",
+    "setup_tracer_libs",
+    "setup_tracer_fastapi",
     "setup_logger",
     "kafka_producer_instrumentation",
     "kafka_consumer_instrumentation",

@@ -4,6 +4,8 @@
 
 Este guia mostra como instrumentar qualquer aplicação Python/FastAPI com o **Solview** para observabilidade completa em **menos de 10 minutos**.
 
+Versão Solview: `2.2.0+`
+
 ---
 
 ## 🚀 Instrumentação Rápida (5 minutos)
@@ -12,14 +14,15 @@ Este guia mostra como instrumentar qualquer aplicação Python/FastAPI com o **S
 
 ```bash
 # Instalar Solview
-pip install solview
+uv add solview
 
-# Dependências adicionais (se necessário)
-pip install opentelemetry-instrumentation-fastapi
-pip install opentelemetry-instrumentation-httpx
+# Ou com pip
+pip install solview
 ```
 
-### 2. **Instrumentação Básica**
+### 2. **Instrumentação Básica (Recomendado)**
+
+Para a maioria dos casos, use a função wrapper `setup_tracer(app)`:
 
 ```python
 # main.py
@@ -53,8 +56,8 @@ app = FastAPI(
 setup_logger(settings)
 logger = get_logger(__name__)
 
-# ✅ 4. Setup de tracing distribuído
-setup_tracer(settings, app)
+# ✅ 4. Setup de tracing distribuído (wrapper)
+setup_tracer(app)
 
 # ✅ 5. Middleware de métricas
 app.add_middleware(
@@ -82,6 +85,53 @@ async def get_user(user_id: int):
     return user
 ```
 
+### 2b. **Instrumentação Avançada (Engine SQLAlchemy em Import-time)**
+
+Se a engine SQLAlchemy é criada em import-time (nível de módulo), use as três funções separadas para evitar o **ordering bug**:
+
+```python
+# main.py
+from solview import (
+    setup_settings,
+    setup_tracer_provider,
+    setup_tracer_libs,
+    setup_tracer_fastapi,
+)
+
+# 1. Configurar settings
+setup_settings(SolviewSettings(service_name="minha-api"))
+
+# 2. Setup tracer provider (cria TracerProvider + MeterProvider)
+setup_tracer_provider()
+
+# 3. Setup lib instrumentation (patch em create_async_engine ANTES de imports)
+setup_tracer_libs()
+
+# 4. AGORA é seguro importar módulos que criam engine SQLAlchemy
+from app.controllers import router  # Imports que tocam DB
+from app.db import engine
+
+# 5. Criar FastAPI app
+from fastapi import FastAPI
+app = FastAPI()
+app.include_router(router)
+
+# 6. Instrumentar FastAPI
+setup_tracer_fastapi(app)
+
+# 7. Resto da configuração (logging, métricas, etc.)
+from solview import setup_logger, get_logger
+from solview.metrics import SolviewPrometheusMiddleware, prometheus_metrics_response
+
+setup_logger()
+logger = get_logger(__name__)
+
+app.add_middleware(SolviewPrometheusMiddleware)
+app.add_route("/metrics", prometheus_metrics_response)
+```
+
+Para mais detalhes sobre o ordering bug, veja [Ordering Bug com SQLAlchemy](tracing.md#-ordering-bug-com-sqlalchemy--engines-em-import-time).
+
 ### 3. **Configuração de Ambiente**
 
 ```bash
@@ -104,6 +154,11 @@ curl http://localhost:8000/health
 curl http://localhost:8000/metrics
 curl http://localhost:8000/api/users/123
 ```
+
+**Resultado esperado:**
+- `/health` → Retorna `{"status": "healthy", ...}`
+- `/metrics` → Exibe métricas Prometheus (http_requests_total, etc.)
+- `/api/users/123` → Retorna dados do usuário, com spans capturados
 
 **🎊 Pronto! Sua aplicação agora está 100% instrumentada!**
 
