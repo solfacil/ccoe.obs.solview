@@ -6,6 +6,7 @@ from solview.metrics.exporters import (
     prometheus_metrics_response,
 )
 from solview.solview_logging.settings import LoggingSettings
+from solview.tracing import core as tracing_core
 
 
 @pytest.fixture
@@ -48,3 +49,24 @@ def force_event_loop():
     yield
     if loop and not loop.is_closed():
         loop.close()
+
+
+@pytest.fixture(autouse=True, scope="function")
+def reset_tracing_state():
+    """
+    Reseta o estado das flags de tracing entre testes para evitar contaminação
+    de estado.
+    """
+    # Reset antes do teste
+    tracing_core._state["tracer_provider_initialized"] = False
+    tracing_core._state["tracer_provider"] = None
+    tracing_core._state["libs_instrumented"] = False
+    tracing_core._state["fastapi_instrumented_apps"] = set()
+
+    yield
+
+    # Cleanup após teste
+    tracing_core._state["tracer_provider_initialized"] = False
+    tracing_core._state["tracer_provider"] = None
+    tracing_core._state["libs_instrumented"] = False
+    tracing_core._state["fastapi_instrumented_apps"] = set()

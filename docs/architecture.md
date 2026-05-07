@@ -91,11 +91,17 @@ solview/
 # solview/__init__.py
 from .settings import SolviewSettings
 from .solview_logging import setup_logger, get_logger
-from .tracing import setup_tracer, get_tracer
+from .tracing import (
+    setup_tracer,
+    setup_tracer_provider,
+    setup_tracer_libs,
+    setup_tracer_fastapi,
+    get_tracer,
+)
 from .metrics import get_metrics_registry
 from .security import MaskingRule, enhanced_masking
 
-__version__ = "2.0.1"
+__version__ = "2.2.0"
 
 # API pública simplificada
 __all__ = [
@@ -103,6 +109,9 @@ __all__ = [
     "setup_logger",
     "get_logger",
     "setup_tracer",
+    "setup_tracer_provider",  # v2.2.0+
+    "setup_tracer_libs",      # v2.2.0+
+    "setup_tracer_fastapi",   # v2.2.0+
     "get_tracer",
     "get_metrics_registry",
     "MaskingRule",

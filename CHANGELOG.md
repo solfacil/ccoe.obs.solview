@@ -6,6 +6,42 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.2.0] - 2026-05-06
+### ✨ Adicionado
+- **`setup_tracer_provider()`** — cria/retorna `TracerProvider` + `MeterProvider` + Resource + Sampler e adiciona o `BatchSpanProcessor` com o exportador OTLP. Idempotente: chamadas subsequentes retornam o provider existente sem registrar processadores duplicados.
+- **`setup_tracer_libs()`** — aplica somente as auto-instrumentações de biblioteca (Logging, HTTPX, AsyncPG, SQLAlchemy, http.client, Requests, Redis, AioPika). Idempotente — flag de módulo evita re-execução e logs duplicados.
+- **`setup_tracer_fastapi(app)`** — aplica `FastAPIInstrumentor` e `prometheus-fastapi-instrumentator` em uma instância FastAPI. Idempotente por instância de `app`.
+- Novas funções reexportadas a partir de `solview` e `solview.tracing`.
+
+### 🔧 Modificado
+- `setup_tracer(app=None)` agora é um *wrapper* que delega para as três funções acima, na ordem `setup_tracer_provider()` → `setup_tracer_libs()` → `setup_tracer_fastapi(app)`. Assinatura e comportamento observável preservados.
+
+### 💡 Motivação
+Resolve o *ordering bug* observado em consumidores como `agents-core`, em que a engine SQLAlchemy é criada em import-time (antes de `setup_tracer(app)` rodar dentro de `create_app()`). Como a função era monolítica, não era seguro chamá-la cedo e novamente com `app` (duplicava `BatchSpanProcessor`/`TracerProvider`). Agora é possível chamar `setup_tracer_provider()` + `setup_tracer_libs()` **antes** dos imports que tocam o banco, e `setup_tracer_fastapi(app)` depois de criar o `FastAPI`, sem duplicação.
+
+#### Exemplo de uso recomendado
+```python
+from solview import (
+    setup_settings,
+    setup_tracer_provider,
+    setup_tracer_libs,
+    setup_tracer_fastapi,
+)
+
+setup_settings(...)
+setup_tracer_provider()
+setup_tracer_libs()  # ANTES de importar módulos que criam engine SQLAlchemy
+
+from app.controllers import router  # imports que tocam DB
+
+from fastapi import FastAPI
+app = FastAPI()
+app.include_router(router)
+setup_tracer_fastapi(app)
+```
+
+---
+
 ## [2.1.5] - 2026-03-25
 ### ✨ Adicionado
 - **Instrumentação RabbitMQ (aio-pika)** — decoradores `rabbitmq_publisher_instrumentation` e `rabbitmq_consumer_instrumentation` para instrumentação manual de operações RabbitMQ com tracing OpenTelemetry e métricas Prometheus

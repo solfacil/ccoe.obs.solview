@@ -49,17 +49,14 @@ METRICS_ENABLED=true
 ```python
 # app/main.py
 from fastapi import FastAPI
-from solview import SolviewSettings, setup_logger, setup_tracer
+from solview import setup_logger, setup_tracer
 from solview.metrics import prometheus_metrics_response
-
-# Configuração para desenvolvimento
-settings = SolviewSettings()
 
 app = FastAPI(title="API de Desenvolvimento")
 
-# Setup Solview
-setup_logger(settings)
-setup_tracer(settings, app)
+# Setup Solview (v2.2.0+)
+setup_logger()
+setup_tracer(app)  # Provider + libs + fastapi automaticamente
 app.add_route("/metrics", prometheus_metrics_response)
 
 @app.get("/")

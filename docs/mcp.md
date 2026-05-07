@@ -2,11 +2,16 @@
 
 O módulo **solview.mcp** oferece observabilidade completa para servidores **FastMCP** (v2+), incluindo tracing distribuído, métricas Prometheus e memory profiling — sem modificar a lógica das suas tools.
 
+Versão Solview: `2.2.0+` (com funções separadas para tracing)
+
 ---
 
 ## 🚀 Instalação
 
 ```bash
+uv add solview[mcp]
+
+# Ou com pip
 pip install solview[mcp]
 ```
 
