@@ -466,3 +466,72 @@ BUSINESS_OPERATIONS_MEMORY_BYTES = Histogram(
         1073741824,  # 1 GB
     ],
 )
+
+# =============================================================================
+# Script / Cronjob Metrics
+#
+# Scripts e cronjobs são processos de curta duração que não servem um endpoint
+# HTTP persistente. As métricas abaixo são exportadas via Pushgateway.
+# =============================================================================
+
+SCRIPT_RUNS_TOTAL = Counter(
+    "script_runs_total",
+    "Total de execuções do script/cronjob por status (success|error). "
+    "Use para calcular taxa de falha: rate(script_runs_total{status='error'}[5m]).",
+    ["job_name", "app_name", "status"],
+)
+
+SCRIPT_DURATION_SECONDS = Histogram(
+    "script_duration_seconds",
+    "Duração total da execução do script em segundos. "
+    "Buckets cobrem desde scripts rápidos (1s) até jobs longos (2h).",
+    ["job_name", "app_name", "status"],
+    buckets=[
+        1.0,     # 1 s
+        5.0,     # 5 s
+        15.0,    # 15 s
+        30.0,    # 30 s
+        60.0,    # 1 min
+        120.0,   # 2 min
+        300.0,   # 5 min
+        600.0,   # 10 min
+        1800.0,  # 30 min
+        3600.0,  # 1 h
+        7200.0,  # 2 h
+    ],
+)
+
+SCRIPT_LAST_SUCCESS_TIMESTAMP = Gauge(
+    "script_last_success_timestamp",
+    "Unix timestamp da última execução bem-sucedida do script. "
+    "Alerta: time() - esta_metrica > <intervalo_esperado> indica job parado.",
+    ["job_name", "app_name"],
+)
+
+SCRIPT_LAST_RUN_TIMESTAMP = Gauge(
+    "script_last_run_timestamp",
+    "Unix timestamp da última execução do script (independente de sucesso ou erro). "
+    "Útil para detectar job que nem chegou a iniciar.",
+    ["job_name", "app_name"],
+)
+
+SCRIPT_MEMORY_SAMPLES_TOTAL = Counter(
+    "script_memory_samples_total",
+    "Total de amostras de memória coletadas para scripts.",
+    ["job_name", "app_name"],
+)
+
+SCRIPT_MEMORY_BYTES = Histogram(
+    "script_memory_bytes",
+    "Uso de memória de scripts em bytes.",
+    ["job_name", "app_name", "status"],
+    buckets=[
+        1024,        # 1 KB
+        10240,       # 10 KB
+        102400,      # 100 KB
+        1048576,     # 1 MB
+        10485760,    # 10 MB
+        104857600,   # 100 MB
+        1073741824,  # 1 GB
+    ],
+)
