@@ -20,6 +20,7 @@ from .instrumentation import (
     http_client_instrumentation,
     business_operation_instrumentation,
     redis_client_instrumentation,
+    script_job_instrumentation,
 )
 from .metrics import setup_db_pool_metrics
 
@@ -42,4 +43,5 @@ __all__ = [
     "http_client_instrumentation",
     "business_operation_instrumentation",
     "redis_client_instrumentation",
+    "script_job_instrumentation",
 ]
