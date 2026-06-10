@@ -15,6 +15,7 @@ Versão Solview: `2.2.0+` (com funções separadas para tracing)
 | `solview.tracing` | Tracing distribuído | OpenTelemetry, integração com FastAPI, SQL, HTTP, Redis |
 | `solview.mcp` | Observabilidade MCP | Middleware FastMCP, usa `setup_tracer()` sem app |
 | `solview.instrumentation.redis` | Instrumentação Redis | `redis_client_instrumentation`, métricas `redis_operations_*` |
+| `solview.instrumentation.script` | Scripts e Cronjobs | `script_job_instrumentation`, push via Prometheus Pushgateway |
 
 ---
 
@@ -127,20 +128,33 @@ async def consultar_saldo(conta: str) -> str:
 
 ---
 
-### 🐍 Scripts Python
+### 🐍 Scripts e Cronjobs (Pushgateway)
+
+Scripts de curta duração não podem servir um endpoint HTTP persistente. Use o modelo push com o Pushgateway:
 
 ```python
-from solview import SolviewSettings, setup_logger
+from solview import setup_settings, setup_logger, script_job_instrumentation
+from solview.settings import SolviewSettings
 
-setup_logger(SolviewSettings(service_name="cli-importador"))
+setup_settings(SolviewSettings(service_name="cli-importador"))
+setup_logger()
 
-def main():
+
+@script_job_instrumentation(
+    "importacao-clientes",
+    gateway_url="http://pushgateway:9091",
+)
+def importar_clientes():
     # lógica do script
     pass
 
+
 if __name__ == "__main__":
-    main()
+    importar_clientes()
+    # ↑ métricas são enviadas automaticamente ao Pushgateway ao finalizar
 ```
+
+> Veja o guia completo em [📋 Scripts e Cronjobs](scripts-e-cronjobs.md) — alertas recomendados, configuração do Pushgateway, boas práticas e troubleshooting.
 
 ---
 
