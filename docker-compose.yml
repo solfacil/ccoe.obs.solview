@@ -105,6 +105,16 @@ services:
       - loki
       - prometheus
 
+  # Prometheus Pushgateway (Scripts e Cronjobs)
+  pushgateway:
+    image: prom/pushgateway:v1.10.0
+    container_name: solview-pushgateway
+    ports:
+      - "9091:9091"
+    networks:
+      - solview-network
+    restart: unless-stopped
+
   # =============================================================================
   # 🗄️ SUPPORTING SERVICES
   # =============================================================================
