@@ -16,6 +16,7 @@ from .rabbitmq import (
     rabbitmq_publisher_instrumentation,
     rabbitmq_consumer_instrumentation,
 )
+from .script import script_job_instrumentation
 
 __all__ = [
     "kafka_producer_instrumentation",
@@ -25,4 +26,5 @@ __all__ = [
     "redis_client_instrumentation",
     "rabbitmq_publisher_instrumentation",
     "rabbitmq_consumer_instrumentation",
+    "script_job_instrumentation",
 ]

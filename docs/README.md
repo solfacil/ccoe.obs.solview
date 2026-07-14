@@ -22,6 +22,7 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 - [🔍 **Tracing**](tracing.md) - Traces distribuídos e instrumentação
 - [🗺️ **Service Graph**](service-graph-explanation.md) - Visualização da topologia
 - [🤖 **MCP (FastMCP)**](mcp.md) - Observabilidade para servidores MCP
+- [📋 **Scripts e Cronjobs**](scripts-e-cronjobs.md) - Exportação de métricas via Pushgateway para processos batch
 
 ### 🎛️ **Grafana e Dashboards**
 - [🔗 **Correlação no Grafana**](grafana-correlation-setup.md) - Setup de correlações automáticas
@@ -49,6 +50,10 @@ Bem-vindo à documentação completa do **Solview** - a biblioteca de observabil
 1. [🤖 Guia MCP](mcp.md) - Setup completo para FastMCP v2+
 2. [📈 Métricas](metrics.md) - Métricas (reusa business_operations_*)
 3. [🔍 Tracing](tracing.md) - Traces distribuídos
+
+**"Quero instrumentar meu script ou cronjob"**
+1. [📋 Scripts e Cronjobs](scripts-e-cronjobs.md) - Pushgateway setup e decorator
+2. [📈 Métricas](metrics.md) - Métricas de referência
 
 **"Quero testar localmente"**
 1. [🚀 Quick Start](../README.md#-quick-start) - Docker Compose stack

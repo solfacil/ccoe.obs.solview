@@ -69,6 +69,14 @@ scrape_configs:
     scrape_interval: 30s
     metrics_path: /metrics
 
+  # Prometheus Pushgateway (scripts e cronjobs)
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
   # Redis metrics (if redis_exporter is added)
   - job_name: 'redis'
     static_configs:
