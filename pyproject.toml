@@ -1,6 +1,6 @@
 [project]
 name = "solview"
-version = "2.2.0"
+version = "2.3.2"
 description = "Observabilidade clara como o Sol"
 authors = [
     { name = "Solfácil", email = "jefferson.martins@solfacil.com.br" },
